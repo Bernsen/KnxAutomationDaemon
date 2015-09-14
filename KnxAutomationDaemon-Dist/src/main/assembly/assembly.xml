@@ -6,53 +6,37 @@
     <id>${assemble.id}</id>
     <formats>
         <format>zip</format>
+        <format>tar.bz2</format>
+        <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
 
     <dependencySets>
         <dependencySet>
-            <!--
-                do not specify "includes" section. This will exclude child-dependencies!
-                just specifiying nothing special means: put all dependencies (incl. child ones)
-                in lib folder...
-            -->
             <includes>
-                <include>de.root1.kad:knx-automation-daemon</include>
+                <include>de.root1.kad:knxautomationdaemon</include>
             </includes>
-            <useProjectArtifact>false</useProjectArtifact>
-            
+            <useProjectArtifact>false</useProjectArtifact>           
             <outputDirectory>bin</outputDirectory>
         </dependencySet>
 
-        <!-- include the required files/folder resources for the application server runtime environment-->
-<!--        <dependencySet>
-            <includes>
-                <include>de.root1:kad-distribution</include>
-            </includes>
-            <outputDirectory></outputDirectory>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <excludes>
-                    <exclude>META-INF/**</exclude> 
-                </excludes>
-                <filtered>true</filtered>
-            </unpackOptions>
-            <fileMode>750</fileMode>
-            
-
-        </dependencySet>
-            -->
-
-        <!-- pre-fill deploy folder with most important modules -->
         <dependencySet>
             <includes>
                 <include>de.root1.kad:logicplugin::jar-with-dependencies</include>
             </includes>
-            <outputDirectory>plugins</outputDirectory>
-            
-            <useProjectAttachments>true</useProjectAttachments>
-
+            <useProjectAttachments>false</useProjectAttachments>
+            <outputDirectory>plugins</outputDirectory>            
         </dependencySet>
     </dependencySets>
+    
+    <fileSets>
+        <fileSet>
+            <directory></directory>
+            <outputDirectory></outputDirectory>
+            <includes>
+                <include>startup.sh</include>
+            </includes>
+        </fileSet>
+    </fileSets>
 
 </assembly>
