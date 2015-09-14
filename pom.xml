@@ -9,7 +9,7 @@
     <name>00 | KNX Automation Daemon - Parent ${project.version}</name>
     
     <licenses>
-	<license>
+        <license>
             <name>GNU GENERAL PUBLIC LICENSE, Version 3.0</name>
             <url>http://www.gnu.org/licenses/gpl-3.0.txt</url>
         </license>
@@ -44,4 +44,25 @@
             <url>http://nexus.root1.de/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+    
+    <repositories>      
+        <repository>
+            <id>root1-releases</id>
+            <name>root1.de Releases Repository</name>
+            <layout>default</layout>
+            <url>http://nexus.root1.de/content/repositories/releases/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>root1-snapshots</id>
+            <name>root1.de Snapshots Repository</name>
+            <layout>default</layout>
+            <url>http://nexus.root1.de/content/repositories/snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>    
+    </repositories>
 </project>

@@ -21,8 +21,8 @@
         </dependency>
         <dependency>
             <groupId>de.root1</groupId>
-            <artifactId>jul-log-formatter</artifactId>
-            <version>${project.version}</version>
+            <artifactId>jul-formatter</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
