@@ -1,0 +1,40 @@
+This is the folder where you place your logic scripts.
+
+An example:
+
+---- 8< ----
+package samplescripts
+
+import de.root1.kad.logicplugin.Logic;
+import de.root1.slicknx.GroupAddressEvent;
+import de.root1.slicknx.KnxException;
+
+public class AutoLightOff extends Logic {
+
+    String presenceBathroom = getGA("Presence detector bath room");
+    String lightBathroom = getGA("Light bath room");
+    
+    boolean lastState = false;
+    
+    @Override
+    public void init() {
+        setPA("1.1.100"); // when we send out data, we use this individual address
+        listenTo(presenceBathroom); // we are interested in presence detection in bathroom
+    }
+
+    @Override
+    public void knxEvent(GroupAddressEvent event) throws KnxException {
+        boolean state = event.asBool(); // get presence state from knx event
+        if (lastState && !state) { // if presence is gone ...
+            knx.writeBoolean(false, lightBathroom, false);// ... turn off the light
+        }
+        lastState = state; // store last state
+    }
+    
+}
+---- >8 ----
+
+If you use "package" for your script class, you need to put the script into a 
+corresponding package folder. For this example, create a folder named 
+"samplescripts" in scripts-folder and copy&paste the above script into a file called 
+AutoLightOff.java

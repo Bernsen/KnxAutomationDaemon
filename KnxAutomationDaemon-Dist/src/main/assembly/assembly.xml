@@ -14,9 +14,10 @@
     <dependencySets>
         <dependencySet>
             <includes>
-                <include>de.root1.kad:knxautomationdaemon</include>
+                <include>de.root1.kad:knxautomationdaemon::jar-with-dependencies</include>
             </includes>
-            <useProjectArtifact>false</useProjectArtifact>           
+            <useProjectArtifact>false</useProjectArtifact>   
+            <useProjectAttachments>false</useProjectAttachments>        
             <outputDirectory>bin</outputDirectory>
         </dependencySet>
 
@@ -24,7 +25,8 @@
             <includes>
                 <include>de.root1.kad:logicplugin::jar-with-dependencies</include>
             </includes>
-            <useProjectAttachments>false</useProjectAttachments>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useProjectAttachments>false</useProjectAttachments>        
             <outputDirectory>plugins</outputDirectory>            
         </dependencySet>
     </dependencySets>
@@ -37,6 +39,15 @@
                 <include>startup.sh</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>conf</directory>
+            <outputDirectory>conf</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>scripts</directory>
+            <outputDirectory>scripts</outputDirectory>
+        </fileSet>
+
     </fileSets>
 
 </assembly>
