@@ -22,8 +22,6 @@ import de.root1.kad.pf4j.JarPluginManager;
 import de.root1.logging.JulLogFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ro.fortsoft.pf4j.DefaultPluginManager;
-import ro.fortsoft.pf4j.PluginManager;
 
 /**
  *
@@ -42,6 +40,15 @@ public class KadMain {
         log.info("Starting plugins ...");
         pluginManager.startPlugins();
         log.info("Running!");
+        
+        // do nothing while plugins are running... --> need to be replaced with a kind of interactive console or so...!
+        while(true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
     
     public static void main(String[] args) {

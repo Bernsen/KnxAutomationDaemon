@@ -90,7 +90,7 @@ public class LogicPlugin extends Plugin {
                 logger.info("Loading script: " + sc.getCanonicalClassName());
 
                 Logic logic = sc.loadLogic(getClass().getClassLoader());
-
+                
                 logicList.add(logic);
                 addToMap(logic);
 
@@ -198,9 +198,11 @@ public class LogicPlugin extends Plugin {
     }
 
     private void readKnxProjectData() {
+        File file = new File("./conf/knxproject.knxproj");
+        boolean ok = false;
         try {
             logger.info("Reading knx project data ...");
-            KnxProjReader kpr = new KnxProjReader(new File("./conf/knxproject.knxproj"));
+            KnxProjReader kpr = new KnxProjReader(file);
 
             List<GroupAddress> groupaddressList = kpr.getProjects().get(0).getGroupaddressList();
             Map<String, String> gaMap = new HashMap<>();
@@ -209,11 +211,15 @@ public class LogicPlugin extends Plugin {
             }
             GaProvider.setGaMap(gaMap);
             logger.info("Reading knx project data ... *DONE*");
-
+            ok = true;
         } catch (IOException ex) {
-            ex.printStackTrace();
+            logger.warn("Cannot read knx project from "+ file.getAbsolutePath(), ex);
         } catch (JDOMException ex) {
-            ex.printStackTrace();
+            logger.error("Cannot parse knx project file "+file.getAbsolutePath(), ex);
+        } finally {
+            if (!ok) {
+                logger.warn("Scripts depending on GA names might not work properly!");
+            }
         }
     }
 

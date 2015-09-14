@@ -206,6 +206,8 @@ public class SourceContainer {
             ex.printStackTrace();
         } catch (IllegalAccessException ex) {
             ex.printStackTrace();
+        } catch (LogicException ex) {
+            ex.printStackTrace();
         }
         throw new LoadSourceException();
     }

@@ -46,6 +46,7 @@ public abstract class Logic {
 
     public void listenTo(String ga) {
         groupAddresses.add(ga);
+        log.info(getClass().getCanonicalName()+" now listens to "+ga);
     }
 
     public abstract void init();
@@ -59,13 +60,18 @@ public abstract class Logic {
     public void setPA(String pa) {
         try {
             knx.setIndividualAddress("1.1.100");
+            log.info(getClass().getCanonicalName()+" now has PA "+pa);
         } catch (KnxException ex) {
             throw new IllegalArgumentException("pa is invalid", ex);
         }
     }
     
     public String getGA(String name) {
-        return GaProvider.getGA(name);
+        String ga = GaProvider.getGA(name);
+        if (ga==null) {
+            throw new LogicException("Group address '"+name+"' not known. Script will not work as expected!");
+        }
+        return ga;
     }
 
 }
