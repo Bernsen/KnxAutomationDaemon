@@ -19,7 +19,7 @@
 package de.root1.kad;
 
 import de.root1.kad.pf4j.JarPluginManager;
-import de.root1.logging.JulLogFormatter;
+import de.root1.logging.JulFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ public class KadMain {
     }
     
     public static void main(String[] args) {
-        JulLogFormatter.set();
+        JulFormatter.set();
         new KadMain();
     }
     
