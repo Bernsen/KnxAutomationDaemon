@@ -1,3 +1,7 @@
 /KnxAutomationDaemon/target/
+/KnxAutomationDaemon/conf/*
 /plugin-projects/logicplugin/target/
 /KnxAutomationDaemon-Dist/target/
+/KnxAutomationDaemon/compiledScripts/
+/KnxAutomationDaemon/plugins/*
+/KnxAutomationDaemon/plugins/
