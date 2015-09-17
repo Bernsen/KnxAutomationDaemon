@@ -5,3 +5,5 @@
 /KnxAutomationDaemon/compiledScripts/
 /KnxAutomationDaemon/plugins/*
 /KnxAutomationDaemon/plugins/
+/KnxAutomationDaemon-PluginAssemblyDescriptor/target/
+/KnxAutomationDaemon-AssemblyDescriptors/target/

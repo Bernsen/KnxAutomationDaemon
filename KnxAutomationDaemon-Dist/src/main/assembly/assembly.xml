@@ -23,7 +23,7 @@
 
         <dependencySet>
             <includes>
-                <include>de.root1.kad:logicplugin::jar-with-dependencies</include>
+                <include>de.root1.kad:*::kadplugin</include>
             </includes>
             <useProjectArtifact>false</useProjectArtifact>
             <useProjectAttachments>false</useProjectAttachments>        

@@ -13,30 +13,18 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>04 | KAD Logic Plugin ${project.version}</name>
+    
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-
-<!--        <plugin.id>de.root1.kad-logicplugin</plugin.id>
-        <plugin.class>de.root1.kad.logicplugin.LogicPlugin</plugin.class>
-        <plugin.version>1.0.0</plugin.version>
-        <plugin.provider>Alexander Christian</plugin.provider>-->
-        
-<!--        <plugin.id></plugin.id>
-        <plugin.class></plugin.class>
-        <plugin.version></plugin.version>
-        <plugin.provider></plugin.provider>
-        <plugin.dependencies></plugin.dependencies>        -->
-<!--
--->
     </properties>
-    
 
     <build>	
-        
-        
         <plugins>
+            <!-- ############################################## -->
+            <!-- ##    BEGIN - KAD Plugin relevant stuff        -->
+            <!-- read plugin properties from plugin-property file -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>properties-maven-plugin</artifactId>
@@ -62,11 +50,19 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.5</version>
+                <!-- use special assembly descriptor -->
+                <dependencies>
+                    <dependency>
+                        <groupId>de.root1.kad</groupId>
+                        <artifactId>assemblydescriptors</artifactId>
+                        <version>1.0.0</version>
+                        <scope>compile</scope>
+                    </dependency>
+                </dependencies>
 
                 <executions>
                     <execution>
                         <id>make-plugin-assembly</id>
-                        <!-- extend phase package to assembly the archives -->
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
@@ -82,10 +78,8 @@
                                 </manifestEntries>
                             </archive>
                             <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                                <descriptorRef>kadplugin</descriptorRef>
                             </descriptorRefs>
-                            <finalName>${project.build.finalName}.plugin</finalName>
-                            <appendAssemblyId>false</appendAssemblyId>
                         </configuration>
                     </execution>
                 </executions>
@@ -106,6 +100,9 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- ##     END - KAD Plugin relevant stuff         -->
+            <!-- ############################################## -->
+            
         </plugins>
     </build>
             
@@ -137,6 +134,7 @@
             <artifactId>pf4j</artifactId>
             <version>0.11.0-SNAPSHOT</version>
         </dependency>
+
     </dependencies>
     
 </project>
