@@ -25,7 +25,7 @@ public class JarFileFilter extends ExtensionFileFilter {
     /**
      * The extension that this filter will search for.
      */
-    private static final String JAR_EXTENSION = ".JAR";
+    private static final String JAR_EXTENSION = ".plugin.JAR";
 
     public JarFileFilter() {
         super(JAR_EXTENSION);

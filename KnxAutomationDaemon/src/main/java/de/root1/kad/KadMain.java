@@ -32,9 +32,13 @@ public class KadMain {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     public KadMain() {
+        log.info("Mode: {}", System.getProperty("kad.mode"));
+        log.info("devPluginDir: {}", System.getProperty("kad.developmentPluginsDir"));
+        log.info("pluginDir: {}", System.getProperty("kad.pluginsDir"));
         
         log.info("Starting PluginManager ...");
         JarPluginManager pluginManager = new JarPluginManager();
+        
         log.info("Loading Plugins ...");
         pluginManager.loadPlugins();
         log.info("Starting plugins ...");
