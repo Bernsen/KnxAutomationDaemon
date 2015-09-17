@@ -70,20 +70,20 @@ public class JarPluginManager extends DefaultPluginManager {
         return new File(pluginsDir);
     }
     
-    private PluginClasspath getPluginClasspath() {
-        
-        try {
-            Class<? extends JarPluginManager> thisClazz = getClass();
-            Field field = thisClazz.getField("pluginClasspath");
-            
-            field.setAccessible(true);
-            PluginClasspath cp = (PluginClasspath) field.get(this);
-            
-            return cp;
-        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
-            throw new RuntimeException("Cannnot access classpath variable!", ex);
-        } 
-    }
+//    private PluginClasspath getPluginClasspath() {
+//        
+//        try {
+//            Class<? extends JarPluginManager> thisClazz = getClass();
+//            Field field = thisClazz.getField("pluginClasspath");
+//            
+//            field.setAccessible(true);
+//            PluginClasspath cp = (PluginClasspath) field.get(this);
+//            
+//            return cp;
+//        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
+//            throw new RuntimeException("Cannnot access classpath variable!", ex);
+//        } 
+//    }
 
     /**
      * Add the possibility to override the PluginDescriptorFinder. By default if
@@ -98,7 +98,7 @@ public class JarPluginManager extends DefaultPluginManager {
             return new KadPropertiesPluginDescriptorFinder();
         }
 
-        return new KadManifestPluginDescriptorFinder(getPluginClasspath());
+        return new KadManifestPluginDescriptorFinder(pluginClasspath);
     }
 
 }
