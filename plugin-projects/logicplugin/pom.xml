@@ -17,84 +17,99 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-        <!-- PF4J Plugin Settings -->
-        <plugin.id>de.root1.kad-logicplugin</plugin.id>
+
+<!--        <plugin.id>de.root1.kad-logicplugin</plugin.id>
         <plugin.class>de.root1.kad.logicplugin.LogicPlugin</plugin.class>
         <plugin.version>1.0.0</plugin.version>
-        <plugin.provider>Alexander Christian</plugin.provider>
-        <plugin.dependencies></plugin.dependencies>        
+        <plugin.provider>Alexander Christian</plugin.provider>-->
+        
+<!--        <plugin.id></plugin.id>
+        <plugin.class></plugin.class>
+        <plugin.version></plugin.version>
+        <plugin.provider></plugin.provider>
+        <plugin.dependencies></plugin.dependencies>        -->
+<!--
+-->
     </properties>
     
-    <profiles>
-        <profile>
-            <id>build</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>	
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.5.5</version>
+
+    <build>	
+        
+        
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0-alpha-2</version>
+                <executions>
+                    <execution>
+                        <id>read-plugin-properties</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <files>
+                        <file>${basedir}/plugin.properties</file>
+                    </files>
+                </configuration>
+            </plugin>
+                    
+            <!-- Build the plugin-jar file -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.5</version>
+
+                <executions>
+                    <execution>
+                        <id>make-plugin-assembly</id>
+                        <!-- extend phase package to assembly the archives -->
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
                         <configuration>
                             <archive>
                                 <manifestEntries>
-                                    <Plugin-Id>${plugin.id}</Plugin-Id>
-                                    <Plugin-Class>${plugin.class}</Plugin-Class>
-                                    <Plugin-Version>${plugin.version}</Plugin-Version>
-                                    <Plugin-Provider>${plugin.provider}</Plugin-Provider>
-                                    <Plugin-Dependencies>${plugin.dependencies}</Plugin-Dependencies>
+                                    <Kad-Plugin-Id>${kad.plugin.id}</Kad-Plugin-Id>
+                                    <Kad-Plugin-Class>${kad.plugin.class}</Kad-Plugin-Class>
+                                    <Kad-Plugin-Version>${kad.plugin.version}</Kad-Plugin-Version>
+                                    <Kad-Plugin-Provider>${kad.plugin.provider}</Kad-Plugin-Provider>
+                                    <Kad-Plugin-Dependencies>${kad.plugin.dependencies}</Kad-Plugin-Dependencies>
                                 </manifestEntries>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
+                            <finalName>${project.build.finalName}.plugin</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
                         </configuration>
-
-                        <!-- extend phase package to assembly the archives -->
-                        <executions>
-                            <execution>
-                                <id>make-assembly</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>	
-                </plugins>
-            </build>
+                    </execution>
+                </executions>
+            </plugin>	
+                    
+            <!-- Put dependencies to target/lib/ folder, so that we can depend on during development runtime -->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
             
-        </profile>
-        <profile>
-            <id>development</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <phase>integration-test</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <tasks>
-                                        
-                                        <copy
-                                            file="target/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
-                                            todir="../../KnxAutomationDaemon/plugins/"
-                                        />
-                                    </tasks>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin> 
-                </plugins>
-            </build>           
-        </profile>
-    </profiles>
+   
     <dependencies>
         <dependency>
             <groupId>de.root1</groupId>
