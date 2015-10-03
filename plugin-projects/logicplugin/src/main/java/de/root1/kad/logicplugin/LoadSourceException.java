@@ -23,5 +23,9 @@ package de.root1.kad.logicplugin;
  * @author achristian
  */
 public class LoadSourceException extends Exception {
+
+    LoadSourceException(java.lang.Exception ex) {
+        super(ex);
+    }
     
 }

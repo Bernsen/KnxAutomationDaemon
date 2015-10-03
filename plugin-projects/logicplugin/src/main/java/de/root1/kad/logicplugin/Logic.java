@@ -18,6 +18,7 @@
  */
 package de.root1.kad.logicplugin;
 
+import com.sun.xml.internal.ws.util.VersionUtil;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
@@ -35,6 +36,7 @@ public abstract class Logic {
     public final Logger log = LoggerFactory.getLogger(getClass());
     public Knx knx;
     private final List<String> groupAddresses = new ArrayList<>();
+    private String pa;
 
     public Logic() {
         try {
@@ -59,6 +61,7 @@ public abstract class Logic {
     
     public void setPA(String pa) {
         try {
+            this.pa = pa;
             knx.setIndividualAddress("1.1.100");
             log.info(getClass().getCanonicalName()+" now has PA "+pa);
         } catch (KnxException ex) {
@@ -69,9 +72,18 @@ public abstract class Logic {
     public String getGA(String name) {
         String ga = GaProvider.getGA(name);
         if (ga==null) {
-            throw new LogicException("Group address '"+name+"' not known. Script will not work as expected!");
+            throw new LogicException("Group address '"+name+"' not known! Please fix!");
         }
         return ga;
     }
+
+    @Override
+    public String toString() {
+        return "Logic["+getClass().getCanonicalName()+(pa!=null?"@"+pa:"")+"]";
+    }
+
+    
+    
+    
 
 }

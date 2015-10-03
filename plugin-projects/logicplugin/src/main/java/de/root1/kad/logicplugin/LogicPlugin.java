@@ -26,15 +26,21 @@ import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 import org.jdom2.JDOMException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,10 +95,14 @@ public class LogicPlugin extends Plugin {
 
                 logger.info("Loading script: " + sc.getCanonicalClassName());
 
-                Logic logic = sc.loadLogic(getClass().getClassLoader());
-                
-                logicList.add(logic);
-                addToMap(logic);
+                try {
+                    Logic logic = sc.loadLogic(getClass().getClassLoader());
+                    logicList.add(logic);
+                    addToMap(logic);
+                } catch (LogicException ex) {
+                    logger.error("Error loading script '{}': {}",sc.getPackagePath()+File.separator+sc.getJavaSourceFile(), ex.getMessage());
+                }
+
 
             }
 
@@ -131,8 +141,7 @@ public class LogicPlugin extends Plugin {
             logger.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
         } catch (LoadSourceException ex) {
             ex.printStackTrace();
-        } 
-        catch (KnxException ex) {
+        } catch (KnxException ex) {
             ex.printStackTrace();
         }
     }
@@ -198,24 +207,77 @@ public class LogicPlugin extends Plugin {
     }
 
     private void readKnxProjectData() {
-        File file = new File("./conf/knxproject.knxproj");
-        boolean ok = false;
-        try {
-            logger.info("Reading knx project data ...");
-            KnxProjReader kpr = new KnxProjReader(file);
 
-            List<GroupAddress> groupaddressList = kpr.getProjects().get(0).getGroupaddressList();
-            Map<String, String> gaMap = new HashMap<>();
-            for (GroupAddress ga : groupaddressList) {
-                gaMap.put(ga.getName(), ga.getAddress());
+        File cachedProjectData = new File("./cache/knxproject.properties");
+        File knxprojData = new File("./conf/knxproject.knxproj");
+
+        String checksumCache = "notyetread";
+        String checksumKnxproj = "notyetcalculated";
+        Properties data = new Properties();
+
+        boolean useCacheOnly = false;
+        boolean ok = false;
+
+        try {
+
+            if (cachedProjectData.exists()) {
+                data.load(new FileInputStream(cachedProjectData));
+                checksumCache = data.getProperty("knxproject.checksum", "");
             }
-            GaProvider.setGaMap(gaMap);
-            logger.info("Reading knx project data ... *DONE*");
-            ok = true;
-        } catch (IOException ex) {
-            logger.warn("Cannot read knx project from "+ file.getAbsolutePath(), ex);
-        } catch (JDOMException ex) {
-            logger.error("Cannot parse knx project file "+file.getAbsolutePath(), ex);
+
+            if (knxprojData.exists()) {
+                checksumKnxproj = Utils.createSHA1(knxprojData);
+            } else {
+                logger.warn("No knxproject data available. Using cached value only!");
+                useCacheOnly = true;
+            }
+
+            if (useCacheOnly || checksumCache.equals(checksumKnxproj)) {
+
+                logger.info("No change in knxproject data detected. Continue with cached values.");
+                Map<String, String> gaMap = new HashMap<>();
+                for (final String name : data.stringPropertyNames()) {
+                    gaMap.put(name, data.getProperty(name));
+                }
+                GaProvider.setGaMap(gaMap);
+                ok = true;
+
+            } else {
+
+                logger.info("knxproject data change detected. Reading data ...");
+                cachedProjectData.delete();
+                data.clear();
+                try (FileOutputStream fos = new FileOutputStream(cachedProjectData)) {
+                    logger.info("Reading knx project data ...");
+                    KnxProjReader kpr = new KnxProjReader(knxprojData);
+
+                    List<GroupAddress> groupaddressList = kpr.getProjects().get(0).getGroupaddressList();
+                    Map<String, String> gaMap = new HashMap<>();
+                    for (GroupAddress ga : groupaddressList) {
+                        gaMap.put(ga.getName(), ga.getAddress());
+                        data.put(ga.getName(), ga.getAddress());
+                    }
+                    
+                    logger.info("Writing {} cache data to {} ...", data.size(), cachedProjectData);
+                    // writing to cache
+                    data.put("knxproject.checksum", checksumKnxproj);
+                    data.store(fos, "Created on "+new Date().toString());
+                    fos.close();
+                    logger.info("Writing cache data ...*done*");
+                    
+                    GaProvider.setGaMap(gaMap);
+                    logger.info("Reading knx project data ... *DONE*");
+                    ok = true;
+                } catch (IOException ex) {
+                    logger.warn("Cannot read knx project from " + knxprojData.getAbsolutePath(), ex);
+                } catch (JDOMException ex) {
+                    logger.error("Cannot parse knx project file " + knxprojData.getAbsolutePath(), ex);
+                }
+
+            }
+
+        } catch (Exception ex) {
+            logger.warn("Error while reading file data", ex);
         } finally {
             if (!ok) {
                 logger.warn("Scripts depending on GA names might not work properly!");

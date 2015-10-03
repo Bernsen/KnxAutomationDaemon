@@ -96,14 +96,14 @@ public class SourceContainer {
         }
 
         try {
-            createChecksum();
+            checksum = Utils.createSHA1(file);
         } catch (NoSuchAlgorithmException ex) {
             throw new RuntimeException("Checksumcreation failed", ex);
         }
 
         String pathToFile = filepath.substring(basedirpath.length() + 1);
 
-        log.info("pathToFile={}", pathToFile);
+        log.debug("pathToFile={}", pathToFile);
 
         javaSourceFile = pathToFile;
         if (pathToFile.contains(File.separator)) {
@@ -112,16 +112,16 @@ public class SourceContainer {
 
         packagePath = pathToFile.substring(0, pathToFile.lastIndexOf(File.separator));
 
-        log.info("packagePath={}", packagePath);
+        log.debug("packagePath={}", packagePath);
 
         packageName = packagePath.replace(File.separator, ".");
-        log.info("packageName={}", packageName);
+        log.debug("packageName={}", packageName);
 
-        log.info("javaSourceFile=" + javaSourceFile);
+        log.debug("javaSourceFile=" + javaSourceFile);
 
         className = javaSourceFile.substring(0, javaSourceFile.lastIndexOf("."));
 
-        log.info("className={}", className);
+        log.debug("className={}", className);
         fileSize = file.length();
 
     }
@@ -138,21 +138,6 @@ public class SourceContainer {
         } else {
             return new File(newPath);
         }
-    }
-
-    private void createChecksum() throws FileNotFoundException, NoSuchAlgorithmException, IOException {
-
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        InputStream fis = new BufferedInputStream(new FileInputStream(file));
-        int n = 0;
-        byte[] buffer = new byte[8192];
-        while (n != -1) {
-            n = fis.read(buffer);
-            if (n > 0) {
-                digest.update(buffer, 0, n);
-            }
-        }
-        checksum = Utils.byteArrayToHex(digest.digest(), false);
     }
 
     public String getChecksum() {
@@ -177,7 +162,7 @@ public class SourceContainer {
 
             File compileToFile = jrc.compileToFile(getCanonicalClassName(), getFile(), compiledScriptsFolder.getCanonicalFile());
 
-            log.info("compiled file: {}", compileToFile.getAbsolutePath());
+            log.debug("compiled file: {}", compileToFile.getAbsolutePath());
 
             SourceClassLoader scl = new SourceClassLoader(this.getClass().getClassLoader());
             scl.setClass(compileToFile, getCanonicalClassName());
@@ -188,28 +173,15 @@ public class SourceContainer {
                 throw new CompileException("Class '" + packageName + "." + className + "' is not of type " + Logic.class.getCanonicalName() + ": " + sourceClass, null, null);
             }
 
-            Logic logic = (Logic) sourceClass.newInstance();
-            log.info("Initialize logic {} ...", getCanonicalClassName());
-            logic.init();
-            log.info("Initialize logic {} ... *DONE*", getCanonicalClassName());
-            return logic;
+                Logic logic = (Logic) sourceClass.newInstance();
+                log.debug("Initialize logic {} ...", getCanonicalClassName());
+                logic.init();
+                log.debug("Initialize logic {} ... *DONE*", getCanonicalClassName());
+                return logic;
 
-        } catch (MalformedURLException ex) {
-            ex.printStackTrace();
-        } catch (CompileException ex) {
-            ex.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            ex.printStackTrace();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } catch (InstantiationException ex) {
-            ex.printStackTrace();
-        } catch (IllegalAccessException ex) {
-            ex.printStackTrace();
-        } catch (LogicException ex) {
-            ex.printStackTrace();
+        } catch (CompileException | ClassNotFoundException | InstantiationException | IllegalAccessException | IOException ex) {
+            throw new LoadSourceException(ex);
         }
-        throw new LoadSourceException();
     }
 
     @Override
