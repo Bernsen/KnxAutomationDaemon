@@ -172,6 +172,13 @@
             <!-- slf4j is provided by KAD, so no need to have a hard dependency -->
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>de.root1.kad</groupId>
+            <artifactId>knxautomationdaemon</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <type>jar</type>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
     
 </project>

@@ -20,6 +20,7 @@ package de.root1.kad.logicplugin;
 
 import de.root1.jrc.CompileException;
 import de.root1.jrc.JavaRuntimeCompiler;
+import de.root1.kad.KadMain;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -156,6 +157,7 @@ public class SourceContainer {
 
             if (cl instanceof URLClassLoader) {
                 jrc.setClassPath((URLClassLoader) getClass().getClassLoader());
+                jrc.addClassPath((URLClassLoader) KadMain.class.getClassLoader());
             }
 
             File compiledScriptsFolder = new File("compiledScripts");
