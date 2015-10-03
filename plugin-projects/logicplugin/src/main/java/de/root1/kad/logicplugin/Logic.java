@@ -18,7 +18,6 @@
  */
 package de.root1.kad.logicplugin;
 
-import com.sun.xml.internal.ws.util.VersionUtil;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
