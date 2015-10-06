@@ -124,10 +124,10 @@ public class LogicPlugin extends Plugin {
 
     @Override
     public void stop() {
-        logger.info("Stopping Bundle {}", getClass().getCanonicalName());
+        logger.info("Stopping Plugin {}", getClass().getCanonicalName());
         knx.setGlobalGroupAddressListener(null);
         knx = null;
-        logger.info("Stopping Bundle {} *DONE*", getClass().getCanonicalName());
+        logger.info("Stopping Plugin {} *DONE*", getClass().getCanonicalName());
     }
 
     /**
@@ -141,11 +141,11 @@ public class LogicPlugin extends Plugin {
             List<Logic> list = gaLogicMap.get(interestedGA);
             if (list == null) {
                 list = new ArrayList<>();
-                logger.info("Creating new gaLogicMap list for {}", interestedGA);
+                logger.debug("Creating new gaLogicMap list for {}", interestedGA);
                 gaLogicMap.put(interestedGA, list);
             }
 
-            logger.info("Adding {} to list for {}", lc, interestedGA);
+            logger.debug("Adding {} to list for {}", lc, interestedGA);
             list.add(lc);
         }
 
