@@ -21,6 +21,7 @@ package de.root1.kad;
 import de.root1.kad.pf4j.JarPluginManager;
 import de.root1.logging.JulFormatter;
 import java.io.File;
+import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,7 @@ public class KadMain {
     
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    public KadMain() {
+    public KadMain() throws IOException {
         
         String basedir = System.getProperty("kad.basedir",".");
         
@@ -48,10 +49,10 @@ public class KadMain {
             System.setProperty("kad.pluginsDir",basedir+File.separator+"plugins");
         }
         
-        log.info("basedir:      {}", basedir);
+        log.info("basedir:      {}", Utils.shortenFile(new File(basedir)));
         log.info("Mode:         {}", System.getProperty("kad.mode", "deployment"));
         log.info("devPluginDir: {}", System.getProperty("kad.developmentPluginsDir"));
-        log.info("pluginDir:    {}", System.getProperty("kad.pluginsDir"));
+        log.info("pluginDir:    {}", Utils.shortenFile(new File(System.getProperty("kad.pluginsDir"))));
         
         log.info("Starting PluginManager ...");
         JarPluginManager pluginManager = new JarPluginManager();
@@ -72,7 +73,7 @@ public class KadMain {
         }
     }
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         JulFormatter.set();
         new KadMain();
     }
