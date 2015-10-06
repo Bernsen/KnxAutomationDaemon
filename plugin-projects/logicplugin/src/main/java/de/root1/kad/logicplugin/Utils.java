@@ -82,7 +82,7 @@ public class Utils {
             }
 
             if (knxprojData.exists()) {
-                checksumKnxproj = Utils.createSHA1(knxprojData);
+                checksumKnxproj = de.root1.kad.Utils.createSHA1(knxprojData);
             } else {
                 logger.warn("No knxproject data available. Using cached value only!");
                 useCacheOnly = true;
@@ -172,34 +172,6 @@ public class Utils {
         return result;
     }
 
-    public static String byteArrayToHex(byte[] bytearray, boolean whitespace) {
-        StringBuilder sb = new StringBuilder(bytearray.length * 2);
 
-        for (int i = 0; i < bytearray.length; i++) {
-            sb.append(String.format("%02x", bytearray[i] & 0xff));
-            if (i < bytearray.length - 1 && whitespace) {
-                sb.append(" ");
-            }
-        }
-        return sb.toString();
-    }
-
-    public static String createSHA1(File f) throws FileNotFoundException, NoSuchAlgorithmException, IOException {
-        InputStream fis = new FileInputStream(f);
-
-        byte[] buffer = new byte[1024];
-        MessageDigest complete = MessageDigest.getInstance("SHA1");
-        int numRead;
-
-        do {
-            numRead = fis.read(buffer);
-            if (numRead > 0) {
-                complete.update(buffer, 0, numRead);
-            }
-        } while (numRead != -1);
-
-        fis.close();
-        return byteArrayToHex(complete.digest(), false);
-    }
 
 }

@@ -19,6 +19,13 @@
 package de.root1.kad.cvbackend;
 
 import fi.iki.elonen.NanoHTTPD;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.UUID;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,67 +41,162 @@ public class BackendServer extends NanoHTTPD {
     private static final String REQUEST_READ = "r";
     private static final String REQUEST_WRITE = "w";
     private static final String REQUEST_FILTER = "f";
-    
+
+    private final Map<String, SessionID> sessions = new HashMap<>();
+    private Timer t = new Timer("SessionID Remover");
+    private TimerTask tt = new TimerTask() {
+
+        @Override
+        public void run() {
+            synchronized(sessions) {
+                Iterator<String> iter = sessions.keySet().iterator();
+                while(iter.hasNext()) {
+                    String clientIp = iter.next();
+                    SessionID session = sessions.get(clientIp);
+                    if (!session.isValid()) {
+                        log.info("Removing session due to timeout: {}", session);
+                        iter.remove();
+                    }
+                }
+            }
+        }
+    };
+
+    class SessionID {
+
+        long SESSION_TIMEOUT = 120 * 1000; // 120sec
+
+        UUID id;
+        String ip;
+        long lastAccess;
+
+        public SessionID(String ip) {
+            this.id = UUID.randomUUID();
+            this.ip = ip;
+            this.lastAccess = System.currentTimeMillis();
+        }
+
+        public void refresh() {
+            this.lastAccess = System.currentTimeMillis();
+        }
+
+        public UUID getId() {
+            return id;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public boolean isValid() {
+            return System.currentTimeMillis() - lastAccess < SESSION_TIMEOUT;
+        }
+
+        @Override
+        public String toString() {
+            return "SessionID{ip=" + ip +", lastAccess=" + lastAccess+ ",  id=" + id +  + '}';
+        }
+        
+        
+    }
+
     BackendServer(int port, String documentRoot) {
         super(port);
         this.documentRoot = documentRoot;
-        
+        t.schedule(tt, 5000, 30*60*1000);
+
     }
 
     @Override
     public Response serve(IHTTPSession session) {
-        
-        log.info("uri: {}",session.getUri());
-        log.info("params: {}",session.getParms());
-        log.info("headers: {}",session.getHeaders());
-        
+
+        log.info("uri: {}", session.getUri());
+        log.info("params: {}", session.getParms());
+        log.info("headers: {}", session.getHeaders());
+
         String uri = session.getUri();
-        
+
         if (!uri.startsWith(documentRoot)) {
-            Response response = new Response("<html><body>URI '"+uri+"' not handled by this server</body></html>"); 
+            Response response = new Response("<html><body>URI '" + uri + "' not handled by this server</body></html>");
             response.setStatus(Response.Status.BAD_REQUEST);
             return response;
         }
-        
-        String request = uri.substring(documentRoot.length());
-        
-        log.info("request: {}", request);
-        
-        switch(request) {
+
+        String resource = uri.substring(documentRoot.length());
+
+        log.info("resource: {}", resource);
+
+        switch (resource) {
             case REQUEST_LOGIN:
-                return handleLogin();
+                return handleLogin(session);
             case REQUEST_FILTER:
-                return handleFilter();
+                return handleFilter(session);
             case REQUEST_READ:
-                return handleRead();
+                return handleRead(session);
             case REQUEST_WRITE:
-                return handleWrite();
+                return handleWrite(session);
             default:
-                Response response = new Response("<html><body>request '"+request+"' not handled by this server</body></html>"); 
+                Response response = new Response("<html><body>resource '" + resource + "' not handled by this server</body></html>");
                 response.setStatus(Response.Status.BAD_REQUEST);
                 return response;
-            
+
         }
-        
+
     }
 
-    private Response handleLogin() {
-        return new Response("<html><body>LOGIN: it works</body></html>");
+    private Response handleLogin(IHTTPSession session) {
+
+        Map<String, String> parms = session.getParms();
+        String user = parms.get("u");
+        String pass = parms.get("p");
+        String device = parms.get("d");
+        log.info("login: user={}, pass={}, device={}", user, pass, device);
+
+//        if (user==null) {
+//            return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "user param missing");
+//        }
+//        if (pass==null) {
+//            return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "pass param missing");
+//        }
+//        if (device==null) {
+//            return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "device param missing");
+//        }
+        JSONObject obj = new JSONObject();
+        obj.put("v", "0.0.1");
+        obj.put("s", getSessionID(session));
+        log.info("response: {}", obj.toJSONString());
+
+        return new Response(obj.toJSONString());
     }
 
-    private Response handleWrite() {
+    public String getSessionID(IHTTPSession session) {
+
+        String clientIp = session.getHeaders().get("http-client-ip");
+        SessionID sessionId;
+        synchronized (sessions) {
+            sessionId = sessions.get(clientIp);
+
+            if (sessionId != null) {
+                sessionId.refresh();
+            } else {
+                sessionId = new SessionID(clientIp);
+                sessions.put(clientIp, sessionId);
+            }
+        }
+
+        return sessionId.getId().toString();
+    }
+
+    private Response handleWrite(IHTTPSession session) {
         return new Response("<html><body>WRITE: it works</body></html>");
     }
 
-    private Response handleRead() {
+    private Response handleRead(IHTTPSession session) {
         return new Response("<html><body>READ: it works</body></html>");
     }
 
-    private Response handleFilter() {
+    private Response handleFilter(IHTTPSession session) {
         return new Response("<html><body>FILTER: it works</body></html>");
     }
-    
-    
-    
-    
+
 }

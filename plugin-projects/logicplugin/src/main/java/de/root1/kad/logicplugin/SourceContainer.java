@@ -98,7 +98,7 @@ public class SourceContainer {
         }
 
         try {
-            checksum = Utils.createSHA1(file);
+            checksum = de.root1.kad.Utils.createSHA1(file);
         } catch (NoSuchAlgorithmException ex) {
             throw new RuntimeException("Checksumcreation failed", ex);
         }
