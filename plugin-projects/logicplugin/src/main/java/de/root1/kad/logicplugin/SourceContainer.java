@@ -84,8 +84,8 @@ public class SourceContainer {
     public SourceContainer(File basedir, File file) throws IOException {
 
         // shorten paths in file objects if necessary
-        basedir = shortenFile(basedir);
-        file = shortenFile(file);
+        basedir = de.root1.kad.Utils.shortenFile(basedir);
+        file = de.root1.kad.Utils.shortenFile(file);
 
         this.file = file;
         this.basedir = basedir;
@@ -126,20 +126,6 @@ public class SourceContainer {
         log.debug("className={}", className);
         fileSize = file.length();
 
-    }
-
-    private static String shortenPath(String path) {
-        return path.replace(File.separator + "." + File.separator, File.separator);
-    }
-
-    private static File shortenFile(File file) throws IOException {
-        String absolutePath = file.getCanonicalPath();
-        String newPath = absolutePath.replace(File.separator + "." + File.separator, File.separator);
-        if (absolutePath.equals(newPath)) {
-            return file.getCanonicalFile();
-        } else {
-            return new File(newPath);
-        }
     }
 
     public String getChecksum() {
