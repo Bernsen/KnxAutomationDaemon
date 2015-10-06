@@ -20,7 +20,6 @@ package de.root1.kad.pf4j;
 
 import de.root1.kad.pf4j.util.JarFileFilter;
 import java.io.File;
-import java.lang.reflect.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ro.fortsoft.pf4j.DefaultPluginManager;

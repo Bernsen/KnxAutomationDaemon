@@ -19,6 +19,7 @@
 package de.root1.kad.logicplugin;
 
 import de.root1.jrc.CompileException;
+import de.root1.jrc.CompileResult;
 import de.root1.jrc.JavaRuntimeCompiler;
 import de.root1.kad.KadMain;
 import java.io.BufferedInputStream;
@@ -44,12 +45,12 @@ public class SourceContainer {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     /**
-     * e.g. /home/achristian/kle/scripts/de/mypackage/MyClass.java
+     * e.g. /opt/kad/scripts/de/mypackage/MyClass.java
      */
     private File file;
 
     /**
-     * e.g. /home/achristian/kle/scripts
+     * e.g. /opt/kad/scripts
      */
     private File basedir;
 
@@ -145,11 +146,15 @@ public class SourceContainer {
         return checksum;
     }
 
+    /**
+     * e.g. de.mypackage.MyClass
+     * @return 
+     */
     public String getCanonicalClassName() {
         return packageName + "." + className;
     }
 
-    public Logic loadLogic(ClassLoader parentCl) throws LoadSourceException {
+    public Logic loadLogic() throws LoadSourceException {
         try {
             JavaRuntimeCompiler jrc = new JavaRuntimeCompiler();
 
@@ -162,12 +167,12 @@ public class SourceContainer {
 
             File compiledScriptsFolder = new File("compiledScripts");
 
-            File compileToFile = jrc.compileToFile(getCanonicalClassName(), getFile(), compiledScriptsFolder.getCanonicalFile());
+            CompileResult compileResult = jrc.compileToFile(getCanonicalClassName(), getFile(), compiledScriptsFolder.getCanonicalFile());
 
-            log.debug("compiled file: {}", compileToFile.getAbsolutePath());
+            log.debug("compile result: {}", compileResult);
 
             SourceClassLoader scl = new SourceClassLoader(this.getClass().getClassLoader());
-            scl.setClass(compileToFile, getCanonicalClassName());
+            scl.setCompileResult(compileResult);
 
             Class<?> sourceClass = scl.loadClass(getCanonicalClassName());
 
@@ -212,26 +217,50 @@ public class SourceContainer {
         return true;
     }
 
+    /**
+     * e.g. /opt/kad/scripts/de/mypackage/MyClass.java
+     * @return 
+     */
     public File getFile() {
         return file;
     }
 
+    /**
+     * e.g. /opt/kad/scripts
+     * @return 
+     */
     public File getBasedir() {
         return basedir;
     }
 
+    /**
+     * e.g. de.mypackage
+     * @return 
+     */
     public String getPackageName() {
         return packageName;
     }
 
+    /**
+     * e.g. MyClass
+     * @return 
+     */
     public String getClassName() {
         return className;
     }
 
+    /**
+     * e.g. de/mypackage
+     * @return 
+     */
     public String getPackagePath() {
         return packagePath;
     }
 
+    /**
+     * e.g. MyClass.java
+     * @return 
+     */
     public String getJavaSourceFile() {
         return javaSourceFile;
     }

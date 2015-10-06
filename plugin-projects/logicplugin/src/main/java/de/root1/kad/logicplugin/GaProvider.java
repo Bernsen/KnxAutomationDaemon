@@ -18,6 +18,7 @@
  */
 package de.root1.kad.logicplugin;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
 public class GaProvider {
     
     private static final Logger logger = LoggerFactory.getLogger(GaProvider.class);
-    private static Map<String, String> gaMap;
+    private static Map<String, String> gaMap = new HashMap<>();
     
     public static String getGA(String gaName) {
         return gaMap.get(gaName);

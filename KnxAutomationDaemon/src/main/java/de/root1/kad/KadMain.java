@@ -20,6 +20,7 @@ package de.root1.kad;
 
 import de.root1.kad.pf4j.JarPluginManager;
 import de.root1.logging.JulFormatter;
+import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +33,25 @@ public class KadMain {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     public KadMain() {
-        log.info("Mode: {}", System.getProperty("kad.mode"));
+        
+        String basedir = System.getProperty("kad.basedir",".");
+        
+        
+        String devPluginsDir = System.getProperty("kad.developmentPluginsDir");
+        String pluginsDir = System.getProperty("kad.pluginsDir");
+        
+        if (devPluginsDir==null) {
+            System.setProperty("kad.developmentPluginsDir",basedir+File.separator+".."+File.separator+"plugin-projects");
+        }
+        
+        if (pluginsDir==null) {
+            System.setProperty("kad.pluginsDir",basedir+File.separator+"plugins");
+        }
+        
+        log.info("basedir:      {}", basedir);
+        log.info("Mode:         {}", System.getProperty("kad.mode", "deployment"));
         log.info("devPluginDir: {}", System.getProperty("kad.developmentPluginsDir"));
-        log.info("pluginDir: {}", System.getProperty("kad.pluginsDir"));
+        log.info("pluginDir:    {}", System.getProperty("kad.pluginsDir"));
         
         log.info("Starting PluginManager ...");
         JarPluginManager pluginManager = new JarPluginManager();
