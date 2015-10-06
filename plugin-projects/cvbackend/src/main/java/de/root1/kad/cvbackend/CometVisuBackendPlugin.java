@@ -18,6 +18,8 @@
  */
 package de.root1.kad.cvbackend;
 
+import de.root1.slicknx.Knx;
+import de.root1.slicknx.KnxException;
 import java.io.IOException;
 import ro.fortsoft.pf4j.Plugin;
 import ro.fortsoft.pf4j.PluginException;
@@ -28,29 +30,40 @@ import ro.fortsoft.pf4j.PluginWrapper;
  * @author achristian
  */
 public class CometVisuBackendPlugin extends Plugin {
-    private final BackendServer backendServer;
 
+    private BackendServer backendServer;
+    
     public CometVisuBackendPlugin(PluginWrapper wrapper) {
         super(wrapper);
-        backendServer = new BackendServer(8080,"/kad/");
+        try {
+            backendServer = new BackendServer(8080, "/kad/", new Knx("1.1.203"));
+        } catch (KnxException ex) {
+            log.error("Could not create KNX instance.", ex);
+        }
     }
-
+    
     @Override
     public void start() throws PluginException {
         try {
             super.start();
-            backendServer.start();
-            log.info("Started CometVisu backend server");
+            if (backendServer != null) {
+                backendServer.start();
+                log.info("Started CometVisu backend server");
+            } else {
+                log.error("Cannot start CometVisu backend server due to initialization failure.");
+            }
         } catch (IOException ex) {
             throw new PluginException("Error starting server", ex);
         }
     }
-
+    
     @Override
     public void stop() throws PluginException {
-        backendServer.stop();
+        if (backendServer != null) {
+            backendServer.stop();
+            log.info("Stopped CometVisu backend server");
+        } 
         super.stop();
-        log.info("Stopped CometVisu backend server");
     }
     
 }
