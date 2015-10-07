@@ -18,8 +18,7 @@
  */
 package de.root1.kad.cvbackend;
 
-import de.root1.slicknx.Knx;
-import de.root1.slicknx.KnxException;
+import de.root1.kad.knxcache.KnxCachePlugin;
 import fi.iki.elonen.NanoHTTPD;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,7 +28,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
-import java.util.logging.Level;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,9 +51,9 @@ public class BackendServer extends NanoHTTPD {
 
         @Override
         public void run() {
-            synchronized(sessions) {
+            synchronized (sessions) {
                 Iterator<String> iter = sessions.keySet().iterator();
-                while(iter.hasNext()) {
+                while (iter.hasNext()) {
                     String clientIp = iter.next();
                     SessionID session = sessions.get(clientIp);
                     if (!session.isValid()) {
@@ -66,11 +64,10 @@ public class BackendServer extends NanoHTTPD {
             }
         }
     };
-    private final Knx knx;
+    private final KnxCachePlugin knx;
+    private final int SESSION_TIMEOUT;
 
     class SessionID {
-
-        long SESSION_TIMEOUT = 120 * 1000; // 120sec
 
         UUID id;
         String ip;
@@ -83,6 +80,7 @@ public class BackendServer extends NanoHTTPD {
         }
 
         public void refresh() {
+            
             this.lastAccess = System.currentTimeMillis();
         }
 
@@ -100,20 +98,19 @@ public class BackendServer extends NanoHTTPD {
 
         @Override
         public String toString() {
-            return "SessionID{ip=" + ip +", lastAccess=" + new Date(lastAccess)+ ",  id=" + id +  + '}';
+            return "SessionID{ip=" + ip + ", lastAccess=" + new Date(lastAccess) + ",  id=" + id + +'}';
         }
-        
-        
+
     }
 
-    BackendServer(int port, String documentRoot, Knx knx) {
+    BackendServer(int port, String documentRoot, KnxCachePlugin knx, int sessionTimeout) {
         super(port);
         this.documentRoot = documentRoot;
         this.knx = knx;
-        t.schedule(tt, 5000, 30*60*1000);
-
+        t.schedule(tt, 5000, 30 * 60 * 1000);
+        SESSION_TIMEOUT = sessionTimeout;
     }
-    
+
     private Map<String, List<String>> getParams(IHTTPSession session) {
         return decodeParameters(session.getQueryParameterString());
     }
@@ -155,21 +152,20 @@ public class BackendServer extends NanoHTTPD {
         }
 
     }
-    
-    public boolean isSessionValid(IHTTPSession session, String sessionIdString) {
+
+    public boolean validateSession(IHTTPSession session, String sessionIdString) {
         String clientIp = session.getHeaders().get("http-client-ip");
-        log.info("waiting for synchronized");
-        synchronized(sessions) {
-            log.info("waiting for synchronized *done*");
+        synchronized (sessions) {
             SessionID sessionId = sessions.get(clientIp);
-            
-            if (sessionId!=null && sessionId.getId().toString().equals(sessionIdString) && sessionId.isValid()) {
+
+            if (sessionId != null && sessionId.getId().toString().equals(sessionIdString) && sessionId.isValid()) {
+                sessionId.refresh();
                 return true;
             }
         }
         return false;
     }
-    
+
     public String getSessionID(IHTTPSession session) {
 
         String clientIp = session.getHeaders().get("http-client-ip");
@@ -213,8 +209,6 @@ public class BackendServer extends NanoHTTPD {
         return new Response(obj.toJSONString());
     }
 
-    
-
     private Response handleWrite(IHTTPSession session) {
         return new Response("<html><body>WRITE: it works</body></html>");
     }
@@ -225,49 +219,51 @@ public class BackendServer extends NanoHTTPD {
         log.info("read params: {}", params);
         String sessionId = params.get("s").get(0);
         log.info("sessionid: {}", sessionId);
-        boolean sessionValid = isSessionValid(session, sessionId);
-        
+        boolean sessionValid = validateSession(session, sessionId);
+
         if (!sessionValid) {
+            log.warn("Access with invalid session detected: {}", sessionId);
             return new Response(Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "");
         }
-        
+
         List<String> filterIds = params.get("f");
         List<String> addresses = params.get("a");
         List<String> addresshashs = params.get("h");
         String timeout = session.getParms().get("t");
         String index = session.getParms().get("i");
-        
+
         JSONObject obj = new JSONObject();
         JSONObject data = new JSONObject();
-        int i = index==null?0:Integer.parseInt(index);
-        int t = timeout==null?0:Integer.parseInt(timeout);
-        
+        int i = index == null ? 0 : Integer.parseInt(index);
+        int t = timeout == null ? 0 : Integer.parseInt(timeout);
+
         long start = System.currentTimeMillis();
-        
+
         log.info("Reading addresses: {}", addresses);
-        
-        for(String address : addresses) {
-            try {
-                log.info("Reading {} ...", address);
-                String value = knx.readRawAsString(address).replaceAll(" ","");
-                log.info("Reading {} ...*done* -> {}", address, value);
+
+        for (String address : addresses) {
+            
+            long remainingTimeout = t>0?t - (System.currentTimeMillis()-start):0;
+            
+            String value = knx.readGa(address, remainingTimeout);
+
+            if (!value.isEmpty()) {
                 data.put(address, value);
                 i++;
-                
-                if (t>0 && System.currentTimeMillis()-start>t) {
-                    log.info("Timeout for query exceeded. Stopping at index {}", i);
-                    break;
-                }
-                
-            } catch (KnxException ex) {
-                log.error("Address '{}' not readable", ex);
+            } else {
+                log.error("Address '{}' not readable");
             }
+            if (t > 0 && System.currentTimeMillis() - start > t) {
+                log.info("Timeout for query exceeded. Stopping at index {}", i);
+                break;
+            }
+
         }
         obj.put("d", data);
-        obj.put("i", i); 
-        
+        obj.put("i", i);
+
         log.info("response: {}", obj.toJSONString());
-        
+
         return new Response(obj.toJSONString());
     }
 

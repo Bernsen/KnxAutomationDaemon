@@ -32,6 +32,14 @@ import java.security.NoSuchAlgorithmException;
  */
 public class Utils {
     
+    public static File getBaseDir() {
+        return new File(System.getProperty("kad.basedir", ".")).getAbsoluteFile();
+    }
+    
+    public static File getConfDir() {
+        return new File(getBaseDir(), "conf").getAbsoluteFile();
+    }
+    
     public static String shortenPath(String path) {
         return path.replace(File.separator + "." + File.separator, File.separator);
     }

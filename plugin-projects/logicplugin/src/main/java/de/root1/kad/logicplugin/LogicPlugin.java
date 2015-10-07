@@ -18,6 +18,7 @@
  */
 package de.root1.kad.logicplugin;
 
+import de.root1.kad.KadPlugin;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
@@ -29,18 +30,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import ro.fortsoft.pf4j.Plugin;
 import ro.fortsoft.pf4j.PluginWrapper;
 
 /**
  *
  * @author achristian
  */
-public class LogicPlugin extends Plugin {
+public class LogicPlugin extends KadPlugin {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final File scriptsdir = new File(System.getProperty("kad.basedir"), "scripts");
     private final ExecutorService pool = Executors.newCachedThreadPool();
 
@@ -58,7 +55,7 @@ public class LogicPlugin extends Plugin {
     @Override
     public void start() {
         try {
-            logger.info("Starting Plugin {}", getClass().getCanonicalName());
+            log.info("Starting Plugin {}", getClass().getCanonicalName());
 
             Utils.readKnxProjectData();
 
@@ -67,14 +64,14 @@ public class LogicPlugin extends Plugin {
 
             for (SourceContainer sc : sourceContainerList) {
 
-                logger.info("Loading script: " + sc.getCanonicalClassName());
+                log.info("Loading script: " + sc.getCanonicalClassName());
 
                 try {
                     Logic logic = sc.loadLogic();
                     logicList.add(logic);
                     addToMap(logic);
                 } catch (LogicException ex) {
-                    logger.error("Error loading script '{}': {}",sc.getPackagePath()+File.separator+sc.getJavaSourceFile(), ex.getMessage());
+                    log.error("Error loading script '{}': {}",sc.getPackagePath()+File.separator+sc.getJavaSourceFile(), ex.getMessage());
                 }
 
 
@@ -102,7 +99,7 @@ public class LogicPlugin extends Plugin {
                     List<Logic> list = gaLogicMap.get(ga);
                     if (list != null) {
                         for (Logic logic : list) {
-                            logger.info("Forwarding {} to {}", event, logic);
+                            log.info("Forwarding {} to {}", event, logic);
                             try {
                                 logic.knxEvent(event);
                             } catch (KnxException ex) {
@@ -112,7 +109,7 @@ public class LogicPlugin extends Plugin {
                     }
                 }
             });
-            logger.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
+            log.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
         } catch (LoadSourceException ex) {
             ex.printStackTrace();
         } catch (KnxException ex) {
@@ -124,10 +121,10 @@ public class LogicPlugin extends Plugin {
 
     @Override
     public void stop() {
-        logger.info("Stopping Plugin {}", getClass().getCanonicalName());
+        log.info("Stopping Plugin {}", getClass().getCanonicalName());
         knx.setGlobalGroupAddressListener(null);
         knx = null;
-        logger.info("Stopping Plugin {} *DONE*", getClass().getCanonicalName());
+        log.info("Stopping Plugin {} *DONE*", getClass().getCanonicalName());
     }
 
     /**
@@ -141,11 +138,11 @@ public class LogicPlugin extends Plugin {
             List<Logic> list = gaLogicMap.get(interestedGA);
             if (list == null) {
                 list = new ArrayList<>();
-                logger.debug("Creating new gaLogicMap list for {}", interestedGA);
+                log.debug("Creating new gaLogicMap list for {}", interestedGA);
                 gaLogicMap.put(interestedGA, list);
             }
 
-            logger.debug("Adding {} to list for {}", lc, interestedGA);
+            log.debug("Adding {} to list for {}", lc, interestedGA);
             list.add(lc);
         }
 

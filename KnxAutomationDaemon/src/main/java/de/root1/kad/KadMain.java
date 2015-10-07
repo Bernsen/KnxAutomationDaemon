@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ro.fortsoft.pf4j.PluginWrapper;
 
 /**
  *
@@ -31,7 +32,14 @@ import org.slf4j.LoggerFactory;
  */
 public class KadMain {
     
+    private static final JarPluginManager pluginManager;
+    
     private Logger log = LoggerFactory.getLogger(getClass());
+    
+    static {
+        JulFormatter.set();
+        pluginManager = new JarPluginManager();
+    }
 
     public KadMain() throws IOException {
         
@@ -54,14 +62,13 @@ public class KadMain {
         log.info("devPluginDir: {}", System.getProperty("kad.developmentPluginsDir"));
         log.info("pluginDir:    {}", Utils.shortenFile(new File(System.getProperty("kad.pluginsDir"))));
         
-        log.info("Starting PluginManager ...");
-        JarPluginManager pluginManager = new JarPluginManager();
-        
         log.info("Loading Plugins ...");
         pluginManager.loadPlugins();
         log.info("Starting plugins ...");
         pluginManager.startPlugins();
         log.info("Running!");
+        
+        
         
         // do nothing while plugins are running... --> need to be replaced with a kind of interactive console or so...!
         while(true) {
@@ -72,9 +79,12 @@ public class KadMain {
             }
         }
     }
+
+    public static PluginWrapper getPlugin(String pluginId) {
+        return pluginManager.getPlugin(pluginId);
+    }
     
     public static void main(String[] args) throws IOException {
-        JulFormatter.set();
         new KadMain();
     }
     

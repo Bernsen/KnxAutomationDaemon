@@ -18,10 +18,10 @@
  */
 package de.root1.kad.cvbackend;
 
-import de.root1.slicknx.Knx;
-import de.root1.slicknx.KnxException;
+import de.root1.kad.KadMain;
+import de.root1.kad.KadPlugin;
+import de.root1.kad.knxcache.KnxCachePlugin;
 import java.io.IOException;
-import ro.fortsoft.pf4j.Plugin;
 import ro.fortsoft.pf4j.PluginException;
 import ro.fortsoft.pf4j.PluginWrapper;
 
@@ -29,19 +29,24 @@ import ro.fortsoft.pf4j.PluginWrapper;
  *
  * @author achristian
  */
-public class CometVisuBackendPlugin extends Plugin {
+public class CometVisuBackendPlugin extends KadPlugin {
 
     private BackendServer backendServer;
-    
+
     public CometVisuBackendPlugin(PluginWrapper wrapper) {
         super(wrapper);
-        try {
-            backendServer = new BackendServer(8080, "/kad/", new Knx("1.1.203"));
-        } catch (KnxException ex) {
-            log.error("Could not create KNX instance.", ex);
-        }
+
+        PluginWrapper knxcachePluginWrapper = KadMain.getPlugin("de.root1.kad-knxcache");
+
+        KnxCachePlugin knxCachePlugin = (KnxCachePlugin) knxcachePluginWrapper.getPlugin();
+
+        int port = Integer.parseInt(pluginConfig.getProperty("port", "8080"));
+        int sessionTimeout = Integer.parseInt(pluginConfig.getProperty("sessiontimeout", "120000"));
+        String pa = pluginConfig.getProperty("pa", "0.0.0");
+        String documentRoot = pluginConfig.getProperty("ducumentroot", "/kad/");
+        backendServer = new BackendServer(port, documentRoot, knxCachePlugin, sessionTimeout);
     }
-    
+
     @Override
     public void start() throws PluginException {
         try {
@@ -56,14 +61,14 @@ public class CometVisuBackendPlugin extends Plugin {
             throw new PluginException("Error starting server", ex);
         }
     }
-    
+
     @Override
     public void stop() throws PluginException {
         if (backendServer != null) {
             backendServer.stop();
             log.info("Stopped CometVisu backend server");
-        } 
+        }
         super.stop();
     }
-    
+
 }
