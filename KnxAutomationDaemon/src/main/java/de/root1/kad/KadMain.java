@@ -79,10 +79,6 @@ public class KadMain {
             }
         }
     }
-
-    public static PluginWrapper getPlugin(String pluginId) {
-        return pluginManager.getPlugin(pluginId);
-    }
     
     public static void main(String[] args) throws IOException {
         new KadMain();

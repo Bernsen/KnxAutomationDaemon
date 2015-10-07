@@ -18,7 +18,6 @@
  */
 package de.root1.kad.cvbackend;
 
-import de.root1.kad.KadMain;
 import de.root1.kad.KadPlugin;
 import de.root1.kad.knxcache.KnxCachePlugin;
 import java.io.IOException;
@@ -31,12 +30,12 @@ import ro.fortsoft.pf4j.PluginWrapper;
  */
 public class CometVisuBackendPlugin extends KadPlugin {
 
-    private BackendServer backendServer;
+    private final BackendServer backendServer;
 
     public CometVisuBackendPlugin(PluginWrapper wrapper) {
         super(wrapper);
 
-        PluginWrapper knxcachePluginWrapper = KadMain.getPlugin("de.root1.kad-knxcache");
+        PluginWrapper knxcachePluginWrapper = wrapper.getPluginManager().getPlugin("de.root1.kad-knxcache");
 
         KnxCachePlugin knxCachePlugin = (KnxCachePlugin) knxcachePluginWrapper.getPlugin();
 
