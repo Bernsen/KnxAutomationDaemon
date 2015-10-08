@@ -18,16 +18,22 @@
  */
 package de.root1.kad.cvbackend;
 
+import de.root1.kad.knxcache.DataListener;
+import de.root1.kad.knxcache.GaValuePair;
 import de.root1.kad.knxcache.KnxCachePlugin;
-import fi.iki.elonen.NanoHTTPD;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.logging.Level;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,16 +42,17 @@ import org.slf4j.LoggerFactory;
  *
  * @author achristian
  */
-public class BackendServer extends NanoHTTPD {
+public class BackendServer extends NanoHttpdSSE {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final String documentRoot;
+
     private static final String REQUEST_LOGIN = "l";
     private static final String REQUEST_READ = "r";
     private static final String REQUEST_WRITE = "w";
     private static final String REQUEST_FILTER = "f";
 
-    private final Map<String, SessionID> sessions = new HashMap<>();
+    private final Map<String, UserSessionID> sessions = new HashMap<>();
     private Timer t = new Timer("SessionID Remover");
     private TimerTask tt = new TimerTask() {
 
@@ -55,7 +62,7 @@ public class BackendServer extends NanoHTTPD {
                 Iterator<String> iter = sessions.keySet().iterator();
                 while (iter.hasNext()) {
                     String clientIp = iter.next();
-                    SessionID session = sessions.get(clientIp);
+                    UserSessionID session = sessions.get(clientIp);
                     if (!session.isValid()) {
                         log.info("Removing session due to timeout: {}", session);
                         iter.remove();
@@ -67,20 +74,57 @@ public class BackendServer extends NanoHTTPD {
     private final KnxCachePlugin knx;
     private final int SESSION_TIMEOUT;
 
-    class SessionID {
+    /**
+     * HTTP/1.1 200 OK Content-type: text/event-stream;charset=UTF-8
+     * Cache-Control: no-cache Connection: keep-alive Transfer-Encoding: chunked
+     * Date: Thu, 08 Oct 2015 06:38:17 GMT Server: lighttpd/1.4.35
+     *
+     * 17 id: data: Hallo Welt
+     *
+     *
+     * 18 id: 1 data: Hallo Welt
+     *
+     *
+     * 18 id: 2 data: Hallo Welt
+     *
+     *
+     * 18 id: 3 data: Hallo Welt
+     */
+    private IResponse handleSseTest(IHTTPSession session) {
 
-        UUID id;
-        String ip;
-        long lastAccess;
+        SseResponse sse = new SseResponse(session);
 
-        public SessionID(String ip) {
+        int i = 0;
+        while (i < 10) {
+            i++;
+            log.info("Sending message... {}", i);
+            sse.sendMessage(Integer.toString(i), null, "Hallo Welt");
+            log.info("Sending message...*done*");
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        return sse;
+
+    }
+
+    class UserSessionID {
+
+        private UUID id;
+        private String ip;
+        private long lastAccess;
+        private Long listening = new Long(System.currentTimeMillis());
+
+        public UserSessionID(String ip) {
             this.id = UUID.randomUUID();
             this.ip = ip;
             this.lastAccess = System.currentTimeMillis();
         }
 
-        public void refresh() {
-            
+        public void renew() {
             this.lastAccess = System.currentTimeMillis();
         }
 
@@ -101,6 +145,34 @@ public class BackendServer extends NanoHTTPD {
             return "SessionID{ip=" + ip + ", lastAccess=" + new Date(lastAccess) + ",  id=" + id + +'}';
         }
 
+        public long setListeningAddresses() {
+            // notify about upcoming change
+            synchronized (listening) {
+                listening.notifyAll();
+                listening = System.currentTimeMillis();
+                log.info("value is now {}", listening);
+                return listening;
+            }
+        }
+
+        public void waitForListeningAddressesChange(long value) {
+            while (listening == value && isValid()) {
+                synchronized (listening) {
+                    try {
+                        listening.wait(1000);
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+            if (!isValid()) {
+                log.info("session invalidated in the meanwhile {}", this);
+            } else  if (listening!=value) {
+                log.info("listening addresses changed in the meanwhile: {}->{} {}", value, listening, this);
+            } else {
+                log.warn("Something went wrong?! {}", this);
+            }
+        }
     }
 
     BackendServer(int port, String documentRoot, KnxCachePlugin knx, int sessionTimeout) {
@@ -116,10 +188,10 @@ public class BackendServer extends NanoHTTPD {
     }
 
     @Override
-    public Response serve(IHTTPSession session) {
+    public IResponse serve(IHTTPSession session) {
 
         log.info("uri: {}", session.getUri());
-        log.info("queryParameterString: {}", session.getQueryParameterString());
+//        log.info("queryParameterString: {}", session.getQueryParameterString());
         log.info("params: {}", getParams(session));
 //        log.info("headers: {}", session.getHeaders());
 
@@ -127,7 +199,7 @@ public class BackendServer extends NanoHTTPD {
 
         if (!uri.startsWith(documentRoot)) {
             Response response = new Response("<html><body>URI '" + uri + "' not handled by this server</body></html>");
-            response.setStatus(Response.Status.BAD_REQUEST);
+            response.setStatus(Status.BAD_REQUEST);
             return response;
         }
 
@@ -146,7 +218,7 @@ public class BackendServer extends NanoHTTPD {
                 return handleWrite(session);
             default:
                 Response response = new Response("<html><body>resource '" + resource + "' not handled by this server</body></html>");
-                response.setStatus(Response.Status.BAD_REQUEST);
+                response.setStatus(Status.BAD_REQUEST);
                 return response;
 
         }
@@ -156,32 +228,50 @@ public class BackendServer extends NanoHTTPD {
     public boolean validateSession(IHTTPSession session, String sessionIdString) {
         String clientIp = session.getHeaders().get("http-client-ip");
         synchronized (sessions) {
-            SessionID sessionId = sessions.get(clientIp);
+            UserSessionID sessionId = sessions.get(clientIp);
 
             if (sessionId != null && sessionId.getId().toString().equals(sessionIdString) && sessionId.isValid()) {
-                sessionId.refresh();
+                sessionId.renew();
                 return true;
             }
         }
         return false;
     }
 
-    public String getSessionID(IHTTPSession session) {
-
+    private UserSessionID createUserSessionID(IHTTPSession session) {
         String clientIp = session.getHeaders().get("http-client-ip");
-        SessionID sessionId;
-        synchronized (sessions) {
-            sessionId = sessions.get(clientIp);
+        UserSessionID userSessionId = new UserSessionID(clientIp);
+        sessions.put(clientIp, userSessionId);
+        return userSessionId;
+    }
 
-            if (sessionId != null) {
-                sessionId.refresh();
-            } else {
-                sessionId = new SessionID(clientIp);
-                sessions.put(clientIp, sessionId);
+    /**
+     * get usersessionid by client ip
+     *
+     * @param session
+     * @return
+     */
+    private UserSessionID getUserSessionID(IHTTPSession session) {
+        String clientIp = session.getHeaders().get("http-client-ip");
+        return sessions.get(clientIp);
+    }
+
+    /**
+     * get matching usersessionid by usersessionid-string
+     *
+     * @param sessionIdString
+     * @return
+     */
+    private UserSessionID getUserSessionID(String sessionIdString) {
+        synchronized (sessions) {
+            Collection<UserSessionID> values = sessions.values();
+            for (UserSessionID userSessionId : values) {
+                if (userSessionId.getId().toString().equals(sessionIdString)) {
+                    return userSessionId;
+                }
             }
         }
-
-        return sessionId.getId().toString();
+        return null;
     }
 
     private Response handleLogin(IHTTPSession session) {
@@ -192,18 +282,9 @@ public class BackendServer extends NanoHTTPD {
         String device = parms.get("d");
         log.info("login: user={}, pass={}, device={}", user, pass, device);
 
-//        if (user==null) {
-//            return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "user param missing");
-//        }
-//        if (pass==null) {
-//            return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "pass param missing");
-//        }
-//        if (device==null) {
-//            return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "device param missing");
-//        }
         JSONObject obj = new JSONObject();
         obj.put("v", "0.0.1");
-        obj.put("s", getSessionID(session));
+        obj.put("s", createUserSessionID(session).getId().toString());
         log.info("response: {}", obj.toJSONString());
 
         return new Response(obj.toJSONString());
@@ -213,58 +294,83 @@ public class BackendServer extends NanoHTTPD {
         return new Response("<html><body>WRITE: it works</body></html>");
     }
 
-    private Response handleRead(IHTTPSession session) {
+    private IResponse handleRead(IHTTPSession session) {
         // a=3/1/10, s=223f7232-ee73-41c1-8ea7-f7ef1d2adea7, t=0
         Map<String, List<String>> params = getParams(session);
         log.info("read params: {}", params);
-        String sessionId = params.get("s").get(0);
-        log.info("sessionid: {}", sessionId);
-        boolean sessionValid = validateSession(session, sessionId);
 
-        if (!sessionValid) {
-            log.warn("Access with invalid session detected: {}", sessionId);
-            return new Response(Response.Status.UNAUTHORIZED, MIME_PLAINTEXT, "");
+        String sessionString = params.get("s").get(0);
+        log.info("sessionString: {}", sessionString);
+
+        UserSessionID userSessionID = getUserSessionID(sessionString);
+
+        if (userSessionID == null || !userSessionID.isValid()) {
+            log.warn("Access with unknown/invalid usersession detected: {}", sessionString);
+            return new Response(Status.UNAUTHORIZED, MIME_PLAINTEXT, "");
         }
 
-        List<String> filterIds = params.get("f");
-        List<String> addresses = params.get("a");
-        List<String> addresshashs = params.get("h");
-        String timeout = session.getParms().get("t");
-        String index = session.getParms().get("i");
+//        List<String> filterIds = params.get("f");
+        final List<String> addresses = params.get("a");
+//        List<String> addresshashs = params.get("h");
+//        String timeout = session.getParms().get("t");
+//        String index = session.getParms().get("i");
 
-        JSONObject obj = new JSONObject();
-        JSONObject data = new JSONObject();
-        int i = index == null ? 0 : Integer.parseInt(index);
-        int t = timeout == null ? 0 : Integer.parseInt(timeout);
+        JSONObject jsonResponse = new JSONObject();
+        JSONObject jsonData = new JSONObject();
+//        int i = index == null ? 0 : Integer.parseInt(index);
 
-        long start = System.currentTimeMillis();
+        final SseResponse sse = new SseResponse(session);
 
         log.info("Reading addresses: {}", addresses);
 
+        // client knows nothing. Full response required
         for (String address : addresses) {
-            
-            long remainingTimeout = t>0?t - (System.currentTimeMillis()-start):0;
-            
-            String value = knx.readGa(address, remainingTimeout);
+
+            String value = knx.getGa(address);
 
             if (!value.isEmpty()) {
-                data.put(address, value);
-                i++;
+                jsonData.put(address, value);
             } else {
                 log.error("Address '{}' not readable");
             }
-            if (t > 0 && System.currentTimeMillis() - start > t) {
-                log.info("Timeout for query exceeded. Stopping at index {}", i);
-                break;
-            }
 
         }
-        obj.put("d", data);
-        obj.put("i", i);
+        jsonResponse.put("d", jsonData);
+        jsonResponse.put("i", "1");
 
-        log.info("response: {}", obj.toJSONString());
+        log.info("response: {}", jsonResponse.toJSONString());
+        sse.sendMessage(null, null, jsonResponse.toJSONString());
 
-        return new Response(obj.toJSONString());
+        DataListener listener = new DataListener() {
+
+            @Override
+            public List<String> listenTo() {
+                return addresses;
+            }
+
+            @Override
+            public void newDataArrived(String ga, String value) {
+                JSONObject jsonResponse = new JSONObject();
+                JSONObject jsonData = new JSONObject();
+                jsonData.put(ga, value);
+                jsonResponse.put("d", jsonData);
+                jsonResponse.put("i", "1");
+                log.info("response: {}", jsonResponse.toJSONString());
+                sse.sendMessage(null, null, jsonResponse.toJSONString());
+            }
+        };
+        
+       
+        long listeningAddresses = userSessionID.setListeningAddresses();
+        knx.addDataListener(listener);
+        
+        log.info("Waiting for listening address change ...");
+        userSessionID.waitForListeningAddressesChange(listeningAddresses);
+        
+        log.info("Waiting for listening address change ...*done*");
+        knx.removeDataListener(listener);
+        
+        return sse;
     }
 
     private Response handleFilter(IHTTPSession session) {

@@ -4,7 +4,7 @@
             <actionName>CUSTOM-package only</actionName>
             <displayName>package only</displayName>
             <goals>
-                <goal>package</goal>
+                <goal>install</goal>
             </goals>
             <properties>
                 <maven.javadoc.skip>true</maven.javadoc.skip>

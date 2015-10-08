@@ -19,9 +19,14 @@
 package de.root1.kad.knxcache;
 
 import de.root1.kad.KadPlugin;
+import de.root1.slicknx.GroupAddressEvent;
+import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
 import de.root1.slicknx.KnxException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -35,7 +40,12 @@ import ro.fortsoft.pf4j.PluginWrapper;
  */
 public class KnxCachePlugin extends KadPlugin {
     
-    private Map<String, CacheEntry> cache = new WeakHashMap<>();
+    /**
+     * GA -> CacheEntry
+     */
+    private Map<String, CacheEntry> cache = Collections.synchronizedMap(new WeakHashMap<String, CacheEntry>());
+    
+    private final int CACHE_TIMEOUT = Integer.parseInt(pluginConfig.getProperty("cachetimeout", "60000"));
     
     private TimerTask tt = new TimerTask() {
 
@@ -57,6 +67,7 @@ public class KnxCachePlugin extends KadPlugin {
     private Timer t = new Timer("Cache Cleaner");
 
     private Knx knx;
+    private List<DataListener> dataListeners = Collections.synchronizedList(new ArrayList<DataListener>());
 
     public KnxCachePlugin(PluginWrapper wrapper) {
         super(wrapper);
@@ -76,6 +87,44 @@ public class KnxCachePlugin extends KadPlugin {
             log.info("cache purge time: {}ms",purgetime);
             t.schedule(tt, 5000, purgetime);
             
+            knx.setGlobalGroupAddressListener(new GroupAddressListener() {
+
+                @Override
+                public void readRequest(GroupAddressEvent event) {
+                    // not interested in
+                }
+
+                @Override
+                public void readResponse(GroupAddressEvent event) {
+                    // it's a read-response, so the value is up2date
+                    putToCache(event);
+                }
+
+                @Override
+                public void write(GroupAddressEvent event) {
+                    putToCache(event);
+                }
+                
+                void putToCache(GroupAddressEvent event) {
+                    String ga = event.getDestination();
+                    String value = de.root1.kad.Utils.byteArrayToHex(event.getData(), false);
+                    log.info("Put to cache: {} -> {}",ga, value);
+                    cache.put(ga, new CacheEntry(ga, value, CACHE_TIMEOUT));
+                    
+                    // notify datalisteners
+                    synchronized(dataListeners) {
+                        for (DataListener dataListener : dataListeners) {
+                            for (String address : dataListener.listenTo()) {
+                                if (ga.equals(address)) {
+                                    log.info("new data arrived for listener: {}", dataListener.listenTo());
+                                    dataListener.newDataArrived(ga, value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
             log.info("KNX Cache started using pa={}!", knx.getIndividualAddress());
             
             
@@ -89,7 +138,7 @@ public class KnxCachePlugin extends KadPlugin {
      * @param ga groupaddress to query
      * @return hexadecimal string representation of raw data, without whitespaces
      */
-    public synchronized String readGa(String ga, long timeout) {
+    public synchronized String getGa(String ga) {
         try {
             log.info("reading {}", ga);
             
@@ -104,7 +153,7 @@ public class KnxCachePlugin extends KadPlugin {
                     log.info("using cached value: {}", ce);
                 } else {
                     String value = knx.readRawAsString(ga).replaceAll(" ","");
-                    ce = new CacheEntry(ga, value, Integer.parseInt(pluginConfig.getProperty("cachetimeout", "60000")));
+                    ce = new CacheEntry(ga, value, CACHE_TIMEOUT);
                     cache.put(ga, ce);
                     log.info("adding to cache: {}", ce);
                 }
@@ -124,6 +173,16 @@ public class KnxCachePlugin extends KadPlugin {
             knx.close();
             log.info("KNX Cache stopped!");
         }
+    }
+
+    public void addDataListener(DataListener listener) {
+        log.info("Register datalistener: {}", listener.listenTo());
+        dataListeners.add(listener);
+    }
+
+    public void removeDataListener(DataListener listener) {
+        log.info("UnRegister datalistener: {}", listener.listenTo());
+        dataListeners.remove(listener);
     }
 
 }
