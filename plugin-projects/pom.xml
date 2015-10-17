@@ -23,7 +23,6 @@
     <modules>
         <module>logicplugin</module>
         <module>cvbackend</module>
-        <module>knxcache</module>
     </modules>
     <dependencies>
         <dependency>

@@ -110,7 +110,7 @@ import org.slf4j.LoggerFactory;
  * licence)
  */
 public abstract class NanoHttpdSSE {
-    
+
     private Logger log = LoggerFactory.getLogger(getClass());
 
     /**
@@ -677,13 +677,15 @@ public abstract class NanoHttpdSSE {
 
         private SimpleDateFormat gmtFrmt = new SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US);
         private boolean headersent = false;
+        private boolean trouble;
+        private final Object TROUBLE_NOTIFY = new Object();
 
         public SseResponse(IHTTPSession session) {
             outputStream = session.getOutputStream();
             gmtFrmt.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
-        public void sendMessage(String id, String event, String message) {
+        public boolean sendMessage(String id, String event, String message) {
 
             PrintWriter pw = new PrintWriter(outputStream);
             if (!headersent) {
@@ -713,19 +715,35 @@ public abstract class NanoHttpdSSE {
                 headersent = true;
             }
 
-            if (id!=null) {
-                pw.print("id: "+id+"\n");
+            if (id != null) {
+                pw.print("id: " + id + "\n");
             }
-            
+
+            if (event != null) {
+                pw.print("event: " + event + "\n");
+            }
+
             String[] messageLines = message.split("\n");
 
             for (String messageLine : messageLines) {
                 pw.print("data: " + messageLine + "\n");
             }
             pw.print("\n"); // end of data
-
-            pw.flush();
-
+            
+            trouble = pw.checkError();
+            
+            if (trouble) {
+                synchronized(TROUBLE_NOTIFY) {
+                    TROUBLE_NOTIFY.notifyAll();
+                }
+            }
+            return trouble;
+        }
+        
+        public void waitForTrouble() throws InterruptedException {
+            synchronized(TROUBLE_NOTIFY) {
+                TROUBLE_NOTIFY.wait();
+            }
         }
 
         @Override
@@ -1062,7 +1080,7 @@ public abstract class NanoHttpdSSE {
         /**
          * Adds the files in the request body to the files map.
          *
-         * @arg files - map to modify
+         * @param files - map to modify
          */
         void parseBody(Map<String, String> files) throws IOException, ResponseException;
     }
@@ -1097,6 +1115,11 @@ public abstract class NanoHttpdSSE {
 
             headers.put("remote-addr", remoteIp);
             headers.put("http-client-ip", remoteIp);
+        }
+
+        @Override
+        public String toString() {
+            return "HTTPSession{" + "uri=" + uri + ", method=" + method + ", headers=" + headers + ", queryParameterString=" + queryParameterString + '}';
         }
 
         @Override

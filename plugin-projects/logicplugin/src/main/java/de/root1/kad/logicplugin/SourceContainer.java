@@ -22,15 +22,9 @@ import de.root1.jrc.CompileException;
 import de.root1.jrc.CompileResult;
 import de.root1.jrc.JavaRuntimeCompiler;
 import de.root1.kad.KadMain;
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URLClassLoader;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -80,6 +74,7 @@ public class SourceContainer {
      * Site in bytes of the java source file
      */
     private long fileSize;
+    private ClassLoader kadClassloader;
 
     public SourceContainer(File basedir, File file) throws IOException {
 
@@ -134,7 +129,8 @@ public class SourceContainer {
 
     /**
      * e.g. de.mypackage.MyClass
-     * @return 
+     *
+     * @return
      */
     public String getCanonicalClassName() {
         return packageName + "." + className;
@@ -148,7 +144,7 @@ public class SourceContainer {
 
             if (cl instanceof URLClassLoader) {
                 jrc.setClassPath((URLClassLoader) getClass().getClassLoader());
-                jrc.addClassPath((URLClassLoader) KadMain.class.getClassLoader());
+                jrc.addClassPath((URLClassLoader) kadClassloader);
             }
 
             File compiledScriptsFolder = new File("compiledScripts");
@@ -166,11 +162,11 @@ public class SourceContainer {
                 throw new CompileException("Class '" + packageName + "." + className + "' is not of type " + Logic.class.getCanonicalName() + ": " + sourceClass, null, null);
             }
 
-                Logic logic = (Logic) sourceClass.newInstance();
-                log.debug("Initialize logic {} ...", getCanonicalClassName());
-                logic.init();
-                log.debug("Initialize logic {} ... *DONE*", getCanonicalClassName());
-                return logic;
+            Logic logic = (Logic) sourceClass.newInstance();
+            log.debug("Initialize logic {} ...", getCanonicalClassName());
+            logic.init();
+            log.debug("Initialize logic {} ... *DONE*", getCanonicalClassName());
+            return logic;
 
         } catch (CompileException | ClassNotFoundException | InstantiationException | IllegalAccessException | IOException ex) {
             throw new LoadSourceException(ex);
@@ -205,7 +201,8 @@ public class SourceContainer {
 
     /**
      * e.g. /opt/kad/scripts/de/mypackage/MyClass.java
-     * @return 
+     *
+     * @return
      */
     public File getFile() {
         return file;
@@ -213,7 +210,8 @@ public class SourceContainer {
 
     /**
      * e.g. /opt/kad/scripts
-     * @return 
+     *
+     * @return
      */
     public File getBasedir() {
         return basedir;
@@ -221,7 +219,8 @@ public class SourceContainer {
 
     /**
      * e.g. de.mypackage
-     * @return 
+     *
+     * @return
      */
     public String getPackageName() {
         return packageName;
@@ -229,7 +228,8 @@ public class SourceContainer {
 
     /**
      * e.g. MyClass
-     * @return 
+     *
+     * @return
      */
     public String getClassName() {
         return className;
@@ -237,7 +237,8 @@ public class SourceContainer {
 
     /**
      * e.g. de/mypackage
-     * @return 
+     *
+     * @return
      */
     public String getPackagePath() {
         return packagePath;
@@ -245,7 +246,8 @@ public class SourceContainer {
 
     /**
      * e.g. MyClass.java
-     * @return 
+     *
+     * @return
      */
     public String getJavaSourceFile() {
         return javaSourceFile;
@@ -253,6 +255,10 @@ public class SourceContainer {
 
     public long getFileSize() {
         return fileSize;
+    }
+
+    void setKadClassloader(ClassLoader kadClassLoader) {
+        this.kadClassloader = kadClassLoader;
     }
 
 }

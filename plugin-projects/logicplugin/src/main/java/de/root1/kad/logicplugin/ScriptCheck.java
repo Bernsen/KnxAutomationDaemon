@@ -7,7 +7,6 @@ package de.root1.kad.logicplugin;
 
 import de.root1.logging.JulFormatter;
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -27,27 +26,25 @@ public class ScriptCheck {
             scriptToCheck = args[0];
         }
         
-        Utils.readKnxProjectData();
-        
         if (scriptToCheck!=null) {
-            Utils.logger.info("Searching for script ["+scriptToCheck+"] in "+scriptsdir.getAbsolutePath()+" ...");
+            Utils.log.info("Searching for script ["+scriptToCheck+"] in "+scriptsdir.getAbsolutePath()+" ...");
         } else {
-            Utils.logger.info("Searching scripts in "+scriptsdir.getAbsolutePath()+" ...");
+            Utils.log.info("Searching scripts in "+scriptsdir.getAbsolutePath()+" ...");
         }
         List<SourceContainer> sourceContainers = Utils.getSourceContainers(scriptsdir);
         
         for (SourceContainer sourceContainer : sourceContainers) {
             if (scriptToCheck!=null) {
                 if (sourceContainer.getCanonicalClassName().equals(scriptToCheck)) {
-                    Utils.logger.info("Checking script ["+sourceContainer.getCanonicalClassName()+"] ...");
+                    Utils.log.info("Checking script ["+sourceContainer.getCanonicalClassName()+"] ...");
                     sourceContainer.loadLogic();
                 }
             } else {
-                Utils.logger.info("Checking script ["+sourceContainer.getCanonicalClassName()+"] ...");
+                Utils.log.info("Checking script ["+sourceContainer.getCanonicalClassName()+"] ...");
                 sourceContainer.loadLogic();
             }
         }
-        Utils.logger.info("All checks done!");
+        Utils.log.info("All checks done!");
     }
     
 }

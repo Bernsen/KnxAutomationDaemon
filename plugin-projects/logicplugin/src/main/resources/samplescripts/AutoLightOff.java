@@ -1,8 +1,7 @@
 package samplescripts;
 
+import de.root1.kad.knxservice.KnxServiceException;
 import de.root1.kad.logicplugin.Logic;
-import de.root1.slicknx.GroupAddressEvent;
-import de.root1.slicknx.KnxException;
 
 /**
  *
@@ -10,8 +9,8 @@ import de.root1.slicknx.KnxException;
  */
 public class AutoLightOff extends Logic {
 
-    String presenceBathroom = getGA("Presence detector bath room");
-    String lightBathroom = getGA("Light bath room");
+    String presenceBathroom = "Presence detector bath room";
+    String lightBathroom = "Light bath room";
     
     boolean lastState = false;
     
@@ -22,10 +21,10 @@ public class AutoLightOff extends Logic {
     }
 
     @Override
-    public void knxEvent(GroupAddressEvent event) throws KnxException {
-        boolean state = event.asBool(); // get presence state from knx event
+    public void onData(String ga, String value) throws KnxServiceException {
+        boolean state = getValueAsBoolean(value); // get presence state from knx event
         if (lastState && !state) { // if presence is gone ...
-            knx.writeBoolean(false, lightBathroom, false);// ... turn off the light
+            knx.write(lightBathroom, getBooleanAsValue(false)); // ... turn off the light
         }
         lastState = state; // store last state
     }

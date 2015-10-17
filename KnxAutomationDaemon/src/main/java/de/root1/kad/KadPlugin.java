@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final Properties pluginConfig = new Properties();
+    private KadMain kadmain;
 
     public KadPlugin(PluginWrapper wrapper) {
         super(wrapper);
@@ -52,5 +54,33 @@ public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin {
             }
         }
     }
+
+    void init(KadMain kadMain) {
+        this.kadmain = kadMain;
+        log.info("Init {}",getClass());
+    }
+    
+    protected void registerService(KadService service) {
+        if (kadmain==null) {
+            throw new IllegalStateException("Don't call registerService from plugin-constructor.");
+        }
+        kadmain.registerService(service);
+    }
+    
+    public <T> List<T> getService(Class<T> serviceClass) {
+        if (kadmain==null) {
+            throw new IllegalStateException("Don't call getService from plugin-constructor.");
+        }
+        return kadmain.getService(serviceClass);
+    }
+    
+    public ClassLoader getKadClassLoader() {
+        if (kadmain==null) {
+            throw new IllegalStateException("Don't call getKadClassLoader from plugin-constructor.");
+        }
+        return kadmain.getClassLoader();
+    }
+    
+    
 
 }

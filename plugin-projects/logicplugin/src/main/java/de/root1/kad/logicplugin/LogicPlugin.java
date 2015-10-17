@@ -19,10 +19,9 @@
 package de.root1.kad.logicplugin;
 
 import de.root1.kad.KadPlugin;
-import de.root1.slicknx.GroupAddressEvent;
-import de.root1.slicknx.GroupAddressListener;
-import de.root1.slicknx.Knx;
-import de.root1.slicknx.KnxException;
+import de.root1.kad.knxservice.KnxService;
+import de.root1.kad.knxservice.KnxServiceDataListener;
+import de.root1.kad.knxservice.KnxServiceException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +45,27 @@ public class LogicPlugin extends KadPlugin {
 
     private final Map<String, List<Logic>> gaLogicMap = new HashMap<>();
 
-    private Knx knx;
+    private KnxService knx;
+    
+    KnxServiceDataListener listener = new KnxServiceDataListener() {
+
+                @Override
+                public void onData(String ga, String value) {
+                    
+                    // forward events from KNX to relevant logic
+                    List<Logic> list = gaLogicMap.get(ga);
+                    if (list != null) {
+                        for (Logic logic : list) {
+                            log.info("Forwarding: '{}' for '{}' to {}", value, ga, logic);
+                            try {
+                                logic.onData(ga, value);
+                            } catch (KnxServiceException ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            };
 
     public LogicPlugin(PluginWrapper wrapper) {
         super(wrapper);
@@ -57,8 +76,6 @@ public class LogicPlugin extends KadPlugin {
         try {
             log.info("Starting Plugin {}", getClass().getCanonicalName());
 
-            Utils.readKnxProjectData();
-
             // initial read source files
             sourceContainerList.addAll(Utils.getSourceContainers(scriptsdir));
 
@@ -67,7 +84,9 @@ public class LogicPlugin extends KadPlugin {
                 log.info("Loading script: " + sc.getCanonicalClassName());
 
                 try {
+                    sc.setKadClassloader(getKadClassLoader());
                     Logic logic = sc.loadLogic();
+                    logic.setKnxService(knx);
                     logicList.add(logic);
                     addToMap(logic);
                 } catch (LogicException ex) {
@@ -77,44 +96,15 @@ public class LogicPlugin extends KadPlugin {
 
             }
 
-            knx = new Knx();
+            knx = getService(KnxService.class).get(0);
+            
+            knx.registerListener("*", listener);
+            
 
-            knx.setGlobalGroupAddressListener(new GroupAddressListener() {
-
-                @Override
-                public void readRequest(GroupAddressEvent event) {
-                    // rigth now, we are only interested write-requests to the bus
-                }
-
-                @Override
-                public void readResponse(GroupAddressEvent event) {
-                    // rigth now, we are only interested write-requests to the bus
-                }
-
-                @Override
-                public void write(GroupAddressEvent event) {
-
-                    // forward events from KNX to relevant logic
-                    String ga = event.getDestination();
-                    List<Logic> list = gaLogicMap.get(ga);
-                    if (list != null) {
-                        for (Logic logic : list) {
-                            log.info("Forwarding {} to {}", event, logic);
-                            try {
-                                logic.knxEvent(event);
-                            } catch (KnxException ex) {
-                                log.error("Error passing [{}] to {}", event, logic, ex);
-                            }
-                        }
-                    }
-                }
-            });
             log.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
         } catch (LoadSourceException ex) {
             ex.printStackTrace();
-        } catch (KnxException ex) {
-            ex.printStackTrace();
-        }
+        } 
     }
 
     
@@ -122,7 +112,7 @@ public class LogicPlugin extends KadPlugin {
     @Override
     public void stop() {
         log.info("Stopping Plugin {}", getClass().getCanonicalName());
-        knx.setGlobalGroupAddressListener(null);
+        knx.unregisterListener("*", listener);
         knx = null;
         log.info("Stopping Plugin {} *DONE*", getClass().getCanonicalName());
     }

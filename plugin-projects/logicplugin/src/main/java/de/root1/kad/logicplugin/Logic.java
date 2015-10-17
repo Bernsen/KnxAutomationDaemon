@@ -18,9 +18,8 @@
  */
 package de.root1.kad.logicplugin;
 
-import de.root1.slicknx.GroupAddressEvent;
-import de.root1.slicknx.Knx;
-import de.root1.slicknx.KnxException;
+import de.root1.kad.knxservice.KnxService;
+import de.root1.kad.knxservice.KnxServiceException;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -33,16 +32,12 @@ import org.slf4j.LoggerFactory;
 public abstract class Logic {
 
     public final Logger log = LoggerFactory.getLogger(getClass());
-    public Knx knx;
+    public KnxService knx;
     private final List<String> groupAddresses = new ArrayList<>();
     private String pa;
 
     public Logic() {
-        try {
-            knx = new Knx();
-        } catch (KnxException ex) {
-            throw new RuntimeException(ex);
-        }
+        
     }
 
     public void listenTo(String ga) {
@@ -52,36 +47,43 @@ public abstract class Logic {
 
     public abstract void init();
 
-    public abstract void knxEvent(GroupAddressEvent event) throws KnxException;
+    public abstract void onData(String ga, String value) throws KnxServiceException;
 
     public List<String> getGroupAddresses() {
         return groupAddresses;
     }
     
     public void setPA(String pa) {
-        try {
-            this.pa = pa;
-            knx.setIndividualAddress("1.1.100");
-            log.info(getClass().getCanonicalName()+" now has PA "+pa);
-        } catch (KnxException ex) {
-            throw new IllegalArgumentException("pa is invalid", ex);
-        }
+        this.pa = pa;
     }
     
-    public String getGA(String name) {
-        String ga = GaProvider.getGA(name);
-        if (ga==null) {
-            throw new LogicException("Group address '"+name+"' not known! Please fix!");
-        }
-        return ga;
-    }
-
     @Override
     public String toString() {
         return "Logic["+getClass().getCanonicalName()+(pa!=null?"@"+pa:"")+"]";
     }
 
+    void setKnxService(KnxService knx) {
+        this.knx = knx;
+    }
     
+    // ----------------
+    // Helper methods
+    // ----------------
+    
+    protected boolean getValueAsBoolean(String value) {
+        switch(value) {
+            case "on":
+                return true;
+                
+            case "off":
+                return false;
+        }
+        throw new IllegalArgumentException("Value '"+value+"' can not be converted to boolean");
+    }
+
+    protected String getBooleanAsValue(boolean b) {
+        return b?"1":"0";
+    }
     
     
 

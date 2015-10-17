@@ -1,9 +1,8 @@
 package samplescripts;
 
 
+import de.root1.kad.knxservice.KnxServiceException;
 import de.root1.kad.logicplugin.Logic;
-import de.root1.slicknx.GroupAddressEvent;
-import de.root1.slicknx.KnxException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,7 +14,7 @@ import java.util.logging.Logger;
 
 public class VOC extends Logic {
     
-    String vocGa = getGA("VOC");
+    String vocGa = "VOC";
 
     private TimerTask tt = new TimerTask() {
 
@@ -32,14 +31,14 @@ public class VOC extends Logic {
                 int exitvalue = exec.waitFor();
                 int vocValue = Integer.parseInt(data);
                 log.info("Read VOC value: {} exitvalue: {}",data, exitvalue);
-                knx.writeDpt7(false, vocGa, vocValue);
+                knx.write(vocGa, String.valueOf(vocValue));
                 
             } catch (IOException ex) {
                 ex.printStackTrace();
-            } catch (KnxException ex) {
-                ex.printStackTrace();
             } catch (InterruptedException ex) {
                 Logger.getLogger(VOC.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (KnxServiceException ex) {
+                ex.printStackTrace();
             }
         }
     };
@@ -53,8 +52,7 @@ public class VOC extends Logic {
     }
 
     @Override
-    public void knxEvent(GroupAddressEvent event) throws KnxException {
-        // nothing to do
+    public void onData(String gaName, String value) throws KnxServiceException {
     }
 
 }

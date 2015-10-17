@@ -19,8 +19,9 @@
 package de.root1.kad.cvbackend;
 
 import de.root1.kad.KadPlugin;
-import de.root1.kad.knxcache.KnxCachePlugin;
+import de.root1.kad.knxservice.KnxService;
 import java.io.IOException;
+import java.util.List;
 import ro.fortsoft.pf4j.PluginException;
 import ro.fortsoft.pf4j.PluginWrapper;
 
@@ -30,24 +31,30 @@ import ro.fortsoft.pf4j.PluginWrapper;
  */
 public class CometVisuBackendPlugin extends KadPlugin {
 
-    private final BackendServer backendServer;
+    private BackendServer backendServer;
+    private KnxService knxService;
 
     public CometVisuBackendPlugin(PluginWrapper wrapper) {
         super(wrapper);
-
-        PluginWrapper knxcachePluginWrapper = wrapper.getPluginManager().getPlugin("de.root1.kad-knxcache");
-
-        KnxCachePlugin knxCachePlugin = (KnxCachePlugin) knxcachePluginWrapper.getPlugin();
-
-        int port = Integer.parseInt(pluginConfig.getProperty("port", "8080"));
-        int sessionTimeout = Integer.parseInt(pluginConfig.getProperty("sessiontimeout", "120000"));
-        String pa = pluginConfig.getProperty("pa", "0.0.0");
-        String documentRoot = pluginConfig.getProperty("ducumentroot", "/kad/");
-        backendServer = new BackendServer(port, documentRoot, knxCachePlugin, sessionTimeout);
     }
 
     @Override
     public void start() throws PluginException {
+        List<KnxService> service = getService(KnxService.class);
+        if (service.size()>1) {
+            
+        } else {
+            knxService = service.get(0);
+        }
+
+        int port = Integer.parseInt(pluginConfig.getProperty("port", "8080"));
+        int sessionTimeout = Integer.parseInt(pluginConfig.getProperty("sessiontimeout", "120000"));
+        String pa = pluginConfig.getProperty("pa", "0.0.0");
+        String documentRoot = pluginConfig.getProperty("documentroot", "/kad/");
+        boolean requireUserSession = Boolean.parseBoolean(pluginConfig.getProperty("requireusersession", "false"));
+        log.info("requires user session: {}", requireUserSession);
+        backendServer = new BackendServer(port, documentRoot, knxService, sessionTimeout, requireUserSession);
+        
         try {
             super.start();
             if (backendServer != null) {
