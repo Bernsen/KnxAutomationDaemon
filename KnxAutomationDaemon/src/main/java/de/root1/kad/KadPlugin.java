@@ -57,7 +57,6 @@ public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin {
 
     void init(KadMain kadMain) {
         this.kadmain = kadMain;
-        log.info("Init {}",getClass());
     }
     
     protected void registerService(KadService service) {

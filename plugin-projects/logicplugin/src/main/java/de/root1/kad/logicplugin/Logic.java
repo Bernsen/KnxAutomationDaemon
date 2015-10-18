@@ -65,7 +65,7 @@ public abstract class Logic {
     }
 
     void setKnxService(KnxService knx) {
-        log.info("Setting knxservice");
+        log.trace("Setting knxservice");
         this.knx = knx;
     }
 

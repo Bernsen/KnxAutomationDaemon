@@ -90,7 +90,7 @@ public class LogicPlugin extends KadPlugin {
                     sc.setKadClassloader(getKadClassLoader());
                     Logic logic = sc.loadLogic();
                     logic.setKnxService(knx);
-                    log.debug("Initialize logic {} ...", logic.getClass().getCanonicalName());
+                    log.info("Initialize logic {} ...", logic.getClass().getCanonicalName());
                     logic.init();
                     logicList.add(logic);
                     addToMap(logic);
@@ -125,11 +125,11 @@ public class LogicPlugin extends KadPlugin {
             List<Logic> list = gaLogicMap.get(interestedGA);
             if (list == null) {
                 list = new ArrayList<>();
-                log.info("Creating new gaLogicMap list for {}", interestedGA);
+                log.debug("Creating new gaLogicMap list for {}", interestedGA);
                 gaLogicMap.put(interestedGA, list);
             }
 
-            log.info("Adding {} to list for {}", lc, interestedGA);
+            log.debug("Adding {} to list for {}", lc, interestedGA);
             list.add(lc);
         }
 
