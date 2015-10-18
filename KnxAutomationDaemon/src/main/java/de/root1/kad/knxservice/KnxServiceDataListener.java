@@ -12,6 +12,12 @@ package de.root1.kad.knxservice;
  */
 public interface KnxServiceDataListener {
     
-    public void onData(String ga, String value);
+    
+    /**
+     * knx data received
+     * @param gaName name of ga
+     * @param value value as string
+     */
+    public void onData(String gaName, String value);
     
 }

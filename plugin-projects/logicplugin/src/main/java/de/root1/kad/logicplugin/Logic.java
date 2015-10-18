@@ -32,17 +32,18 @@ import org.slf4j.LoggerFactory;
 public abstract class Logic {
 
     public final Logger log = LoggerFactory.getLogger(getClass());
-    public KnxService knx;
+    private KnxService knx;
     private final List<String> groupAddresses = new ArrayList<>();
     private String pa;
 
     public Logic() {
-        
+
     }
 
     public void listenTo(String ga) {
         groupAddresses.add(ga);
-        log.info(getClass().getCanonicalName()+" now listens to "+ga);
+        log.info("{} now listens to [{}@{}]", getClass().getCanonicalName(), ga, knx.translateNameToGa(ga));
+        knx.registerListener(ga, null);
     }
 
     public abstract void init();
@@ -52,37 +53,55 @@ public abstract class Logic {
     public List<String> getGroupAddresses() {
         return groupAddresses;
     }
-    
+
     public void setPA(String pa) {
         this.pa = pa;
     }
-    
+
     @Override
     public String toString() {
-        return "Logic["+getClass().getCanonicalName()+(pa!=null?"@"+pa:"")+"]";
+        return "Logic[" + getClass().getCanonicalName() + (pa != null ? "@" + pa : "") + "]";
     }
 
     void setKnxService(KnxService knx) {
+        log.info("Setting knxservice");
         this.knx = knx;
     }
-    
+
     // ----------------
     // Helper methods
     // ----------------
-    
     protected boolean getValueAsBoolean(String value) {
-        switch(value) {
+        switch (value) {
             case "on":
+            case "1":
                 return true;
-                
+
             case "off":
+            case "0":
                 return false;
         }
-        throw new IllegalArgumentException("Value '"+value+"' can not be converted to boolean");
+        throw new IllegalArgumentException("Value '" + value + "' can not be converted to boolean");
     }
 
     protected String getBooleanAsValue(boolean b) {
-        return b?"1":"0";
+        return b ? "1" : "0";
+    }
+
+    public void write(String gaName, String stringData) throws KnxServiceException {
+        if (pa != null) {
+            knx.write(pa, gaName, stringData);
+        } else {
+            knx.write(gaName, stringData);
+        }
+    }
+
+    public String read(String gaName) throws KnxServiceException {
+        if (pa != null) {
+            return knx.read(pa, gaName);
+        } else {
+            return knx.read(gaName);
+        }
     }
     
     

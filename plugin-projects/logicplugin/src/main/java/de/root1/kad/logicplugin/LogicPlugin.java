@@ -46,26 +46,26 @@ public class LogicPlugin extends KadPlugin {
     private final Map<String, List<Logic>> gaLogicMap = new HashMap<>();
 
     private KnxService knx;
-    
+
     KnxServiceDataListener listener = new KnxServiceDataListener() {
 
-                @Override
-                public void onData(String ga, String value) {
-                    
-                    // forward events from KNX to relevant logic
-                    List<Logic> list = gaLogicMap.get(ga);
-                    if (list != null) {
-                        for (Logic logic : list) {
-                            log.info("Forwarding: '{}' for '{}' to {}", value, ga, logic);
-                            try {
-                                logic.onData(ga, value);
-                            } catch (KnxServiceException ex) {
-                                ex.printStackTrace();
-                            }
-                        }
+        @Override
+        public void onData(String ga, String value) {
+
+            // forward events from KNX to relevant logic
+            List<Logic> list = gaLogicMap.get(ga);
+            if (list != null) {
+                for (Logic logic : list) {
+                    log.info("Forwarding: '{}' for '{}' to '{}'", value, ga, logic);
+                    try {
+                        logic.onData(ga, value);
+                    } catch (KnxServiceException ex) {
+                        ex.printStackTrace();
                     }
                 }
-            };
+            }
+        }
+    };
 
     public LogicPlugin(PluginWrapper wrapper) {
         super(wrapper);
@@ -74,6 +74,9 @@ public class LogicPlugin extends KadPlugin {
     @Override
     public void start() {
         try {
+            knx = getService(KnxService.class).get(0);
+            knx.registerListener("*", listener);
+
             log.info("Starting Plugin {}", getClass().getCanonicalName());
 
             // initial read source files
@@ -87,27 +90,21 @@ public class LogicPlugin extends KadPlugin {
                     sc.setKadClassloader(getKadClassLoader());
                     Logic logic = sc.loadLogic();
                     logic.setKnxService(knx);
+                    log.debug("Initialize logic {} ...", logic.getClass().getCanonicalName());
+                    logic.init();
                     logicList.add(logic);
                     addToMap(logic);
                 } catch (LogicException ex) {
-                    log.error("Error loading script '{}': {}",sc.getPackagePath()+File.separator+sc.getJavaSourceFile(), ex.getMessage());
+                    log.error("Error loading script '{}': {}", sc.getPackagePath() + File.separator + sc.getJavaSourceFile(), ex.getMessage());
                 }
 
-
             }
-
-            knx = getService(KnxService.class).get(0);
-            
-            knx.registerListener("*", listener);
-            
 
             log.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
         } catch (LoadSourceException ex) {
             ex.printStackTrace();
-        } 
+        }
     }
-
-    
 
     @Override
     public void stop() {
@@ -128,16 +125,14 @@ public class LogicPlugin extends KadPlugin {
             List<Logic> list = gaLogicMap.get(interestedGA);
             if (list == null) {
                 list = new ArrayList<>();
-                log.debug("Creating new gaLogicMap list for {}", interestedGA);
+                log.info("Creating new gaLogicMap list for {}", interestedGA);
                 gaLogicMap.put(interestedGA, list);
             }
 
-            log.debug("Adding {} to list for {}", lc, interestedGA);
+            log.info("Adding {} to list for {}", lc, interestedGA);
             list.add(lc);
         }
 
     }
-
-    
 
 }

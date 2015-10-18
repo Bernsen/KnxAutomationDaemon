@@ -31,7 +31,7 @@ public class VOC extends Logic {
                 int exitvalue = exec.waitFor();
                 int vocValue = Integer.parseInt(data);
                 log.info("Read VOC value: {} exitvalue: {}",data, exitvalue);
-                knx.write(vocGa, String.valueOf(vocValue));
+                write(vocGa, String.valueOf(vocValue));
                 
             } catch (IOException ex) {
                 ex.printStackTrace();

@@ -163,9 +163,6 @@ public class SourceContainer {
             }
 
             Logic logic = (Logic) sourceClass.newInstance();
-            log.debug("Initialize logic {} ...", getCanonicalClassName());
-            logic.init();
-            log.debug("Initialize logic {} ... *DONE*", getCanonicalClassName());
             return logic;
 
         } catch (CompileException | ClassNotFoundException | InstantiationException | IllegalAccessException | IOException ex) {

@@ -18,6 +18,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,11 +40,11 @@ public class KnxServiceImpl extends KadService implements KnxService {
     private Knx knx;
 
     /**
-     * GA -> ListenerList
+     * GA Name -> ListenerList
      */
     private final Map<String, List<KnxServiceDataListener>> listeners = new HashMap<>();
 
-    ExecutorService pool = Executors.newSingleThreadExecutor();
+    ExecutorService pool = Executors.newCachedThreadPool(new NamedThreadFactory("KnxServiceOndataForwarding"));
 
     private GroupAddressListener gal;
 
@@ -61,6 +62,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
             @Override
             public void write(final GroupAddressEvent event) {
                 final String ga = event.getDestination();
+                final String gaName = translateGaToName(ga);
 
                 // execute async in thread-pool
                 Runnable r = new Runnable() {
@@ -69,14 +71,19 @@ public class KnxServiceImpl extends KadService implements KnxService {
                     public void run() {
                         synchronized (listeners) {
 
-                            List<KnxServiceDataListener> list = listeners.get(ga);
-
+                            // get listeners for this specific ga name
+                            List<KnxServiceDataListener> list = listeners.get(gaName);
                             if (list == null) {
+                                log.info("There's no special listener for [{}@{}]", gaName, ga);
                                 list = new ArrayList<>();
+                            } else {
+                                log.info("{} listeners for [{}@{}]", list.size(), gaName, ga);
                             }
 
+                            // get also wildcard listeners, listening for all addresses
                             List<KnxServiceDataListener> globalList = listeners.get("*");
                             if (globalList != null) {
+                                log.info("{} wildcard listeners", globalList.size());
                                 list.addAll(globalList);
                             }
 
@@ -85,14 +92,18 @@ public class KnxServiceImpl extends KadService implements KnxService {
                                 String dpt = gaToDptProperties.getProperty(ga);
 
                                 if (dpt==null || dpt.startsWith("-1")) {
-                                    log.error("There's no DPT for GA "+ga+" known?! Can not read --> will not forward. Skipping.");
+                                    log.error("There's no DPT for ["+gaName+"@"+ga+"] known?! Can not read --> will not forward. Skipping.");
                                     return;
                                 }
                                 String[] split = dpt.split("\\.");
                                 int mainType = Integer.parseInt(split[0]);
+                                
                                 try {
-                                    String value = event.asString(mainType, dpt);
-                                    listener.onData(ga, value);
+                                    String value = event.asString(mainType, dpt); // slicknx/calimero string style
+                                    value = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
+                                    
+                                    listener.onData(gaName, value);
+                                    log.info("Forward '{}' with '{}' to [{}@{}]", new Object[]{value, dpt, translateGaToName(ga), ga});
                                 } catch (KnxFormatException ex) {
                                     log.error("Error sending value with DPT "+dpt+" to "+ga, ex);
                                 }
@@ -120,13 +131,18 @@ public class KnxServiceImpl extends KadService implements KnxService {
     private File cachedGaPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.ga.properties");
     private File cachedDptPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.dpt.properties");
     private File knxprojData = new File(System.getProperty("kad.basedir") + File.separator + "conf" + File.separator + "knxproject.knxproj");
+    /** NAME -> GA */
     private Properties nameToGaProperties = new Properties();
+    /** GA -> DPT */
     private Properties gaToDptProperties = new Properties();
 
     private void readKnxProjectData() {
 
         String checksumCache = "notyetread";
+        String checksumCacheKnxprojUserxml = "notyetcalculated";
+        
         String checksumKnxproj = "notyetcalculated";
+        String checksumKnxprojUserxml = "notyetcalculated";
 
         boolean useCacheOnly = false;
         boolean ok = false;
@@ -136,6 +152,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
             if (cachedGaPropertiesFile.exists()) {
                 nameToGaProperties.load(new FileInputStream(cachedGaPropertiesFile));
                 checksumCache = nameToGaProperties.getProperty("knxproject.checksum", "");
+                checksumCacheKnxprojUserxml = nameToGaProperties.getProperty("knxproject.userxml.checksum", "");
             }
 
             if (cachedDptPropertiesFile.exists()) {
@@ -151,8 +168,12 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 log.warn("No knxproject data available. Using cached value only!");
                 useCacheOnly = true;
             }
+            
+            if (knxprojData.exists()) {
+                checksumKnxprojUserxml = de.root1.kad.Utils.createSHA1(knxprojData);
+            } 
 
-            if (useCacheOnly || checksumCache.equals(checksumKnxproj)) {
+            if (useCacheOnly || (checksumCache.equals(checksumKnxproj) && checksumCacheKnxprojUserxml.equals(checksumKnxprojUserxml))) {
 
                 log.info("No change in knxproject data detected. Continue with cached values.");
                 ok = true;
@@ -165,6 +186,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 gaToDptProperties.clear();
 
                 nameToGaProperties.put("knxproject.checksum", checksumKnxproj);
+                nameToGaProperties.put("knxproject.userxml.checksum", checksumKnxprojUserxml);
 
                 log.info("Reading knx project data ...");
                 KnxProjReader kpr = new KnxProjReader(knxprojData);
@@ -305,6 +327,19 @@ public class KnxServiceImpl extends KadService implements KnxService {
     public String getDPT(String gaName) {
         String ga = translateNameToGa(gaName);
         return gaToDptProperties.getProperty(ga);
+    }
+
+    @Override
+    public String translateGaToName(String ga) {
+        Enumeration<Object> keys = nameToGaProperties.keys();
+        while (keys.hasMoreElements()) {
+            String name = (String) keys.nextElement();
+            String gaValue = (String) nameToGaProperties.get(name);
+            if (gaValue.equals(ga)) {
+                return name;
+            }
+        }
+        return "[no name translation for ga="+ga+"]";
     }
 
 }

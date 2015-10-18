@@ -21,7 +21,6 @@ package de.root1.kad.cvbackend;
 import de.root1.kad.knxservice.KnxService;
 import de.root1.kad.knxservice.KnxServiceDataListener;
 import de.root1.kad.knxservice.KnxServiceException;
-import de.root1.slicknx.GroupAddressEvent;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;

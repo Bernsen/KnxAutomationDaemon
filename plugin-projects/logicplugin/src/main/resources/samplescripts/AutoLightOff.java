@@ -24,7 +24,7 @@ public class AutoLightOff extends Logic {
     public void onData(String ga, String value) throws KnxServiceException {
         boolean state = getValueAsBoolean(value); // get presence state from knx event
         if (lastState && !state) { // if presence is gone ...
-            knx.write(lightBathroom, getBooleanAsValue(false)); // ... turn off the light
+            write(lightBathroom, getBooleanAsValue(false)); // ... turn off the light
             log.info("Licht Bad Auto-OFF");
         }
         lastState = state; // store last state

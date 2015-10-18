@@ -14,10 +14,17 @@ public interface KnxService {
     
     /**
      * Translates a name of groupaddress to the configured groupaddress
-     * @param gaName name of groupaddress
+     * @param gaName name of groupaddress, like "foobar"
      * @return groupaddress, like "1/2/3"
      */
     public String translateNameToGa(String gaName);
+    
+    /**
+     * Translates a groupaddress to the configured groupaddress name
+     * @param ga groupaddress, like "1/2/3"
+     * @return groupaddress, like "foobar"
+     */
+    public String translateGaToName(String ga);
     
     /**
      * Returns DPT of given groupaddress name
