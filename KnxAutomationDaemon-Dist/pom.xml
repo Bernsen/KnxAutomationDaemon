@@ -66,12 +66,6 @@
             <version>1.0.0-SNAPSHOT</version>
             <classifier>kadplugin</classifier>
         </dependency>
-        
-        <dependency>
-            <groupId>de.root1.kad</groupId>
-            <artifactId>knxcache</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <classifier>kadplugin</classifier>
-        </dependency>
+
     </dependencies>
 </project>
