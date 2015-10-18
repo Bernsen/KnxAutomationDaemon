@@ -75,10 +75,7 @@ public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin {
     }
     
     public ClassLoader getKadClassLoader() {
-        if (kadmain==null) {
-            throw new IllegalStateException("Don't call getKadClassLoader from plugin-constructor.");
-        }
-        return kadmain.getClassLoader();
+        return getWrapper().getPluginManager().getClass().getClassLoader();
     }
     
     

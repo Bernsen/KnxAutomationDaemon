@@ -82,12 +82,12 @@ public class KadMain {
         List<PluginWrapper> plugins = pluginManager.getPlugins();
         for (PluginWrapper pluginWrapper : plugins) {
             Plugin plugin = pluginWrapper.getPlugin();
-//            if (plugin instanceof KadPlugin) {
+            if (plugin instanceof KadPlugin) {
                 KadPlugin kadPlugin = (KadPlugin) plugin;
                 kadPlugin.init(this);
-//            } else {
-//                log.error("plugin not supported? -> {}", plugin);
-//            }
+            } else {
+                log.error("plugin not supported? -> {}", plugin);
+            }
         }
         
         log.info("Starting plugins ...");

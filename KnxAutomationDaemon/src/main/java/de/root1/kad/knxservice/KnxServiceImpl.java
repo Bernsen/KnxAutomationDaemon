@@ -82,15 +82,19 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
                             for (KnxServiceDataListener listener : list) {
 
-                                String dpt = getDPT(ga);
+                                String dpt = gaToDptProperties.getProperty(ga);
 
+                                if (dpt==null || dpt.startsWith("-1")) {
+                                    log.error("There's no DPT for GA "+ga+" known?! Can not read --> will not forward. Skipping.");
+                                    return;
+                                }
                                 String[] split = dpt.split("\\.");
                                 int mainType = Integer.parseInt(split[0]);
                                 try {
                                     String value = event.asString(mainType, dpt);
                                     listener.onData(ga, value);
                                 } catch (KnxFormatException ex) {
-                                    ex.printStackTrace();
+                                    log.error("Error sending value with DPT "+dpt+" to "+ga, ex);
                                 }
 
                             }
@@ -289,7 +293,12 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     @Override
     public String translateNameToGa(String gaName) {
-        return nameToGaProperties.get(gaName).toString();
+        if (gaName.equals("*")) {
+            return "*";
+        } else {
+            String name = nameToGaProperties.get(gaName).toString();
+            return name!=null?name:gaName;
+        }
     }
 
     @Override
