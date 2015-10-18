@@ -74,16 +74,16 @@ public class KnxServiceImpl extends KadService implements KnxService {
                             // get listeners for this specific ga name
                             List<KnxServiceDataListener> list = listeners.get(gaName);
                             if (list == null) {
-                                log.info("There's no special listener for [{}@{}]", gaName, ga);
+                                log.debug("There's no special listener for [{}@{}]", gaName, ga);
                                 list = new ArrayList<>();
                             } else {
-                                log.info("{} listeners for [{}@{}]", list.size(), gaName, ga);
+                                log.debug("{} listeners for [{}@{}]", list.size(), gaName, ga);
                             }
 
                             // get also wildcard listeners, listening for all addresses
                             List<KnxServiceDataListener> globalList = listeners.get("*");
                             if (globalList != null) {
-                                log.info("{} wildcard listeners", globalList.size());
+                                log.debug("{} wildcard listeners", globalList.size());
                                 list.addAll(globalList);
                             }
 
@@ -103,7 +103,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                                     value = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
                                     
                                     listener.onData(gaName, value);
-                                    log.info("Forward '{}' with '{}' to [{}@{}]", new Object[]{value, dpt, translateGaToName(ga), ga});
+                                    log.debug("Forward '{}' with '{}' to [{}@{}]", new Object[]{value, dpt, translateGaToName(ga), ga});
                                 } catch (KnxFormatException ex) {
                                     log.error("Error sending value with DPT "+dpt+" to "+ga, ex);
                                 }

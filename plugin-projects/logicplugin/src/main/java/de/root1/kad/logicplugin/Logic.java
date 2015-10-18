@@ -20,6 +20,7 @@ package de.root1.kad.logicplugin;
 
 import de.root1.kad.knxservice.KnxService;
 import de.root1.kad.knxservice.KnxServiceException;
+import de.root1.kad.knxservice.KnxSimplifiedTranslation;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ public abstract class Logic {
     // Helper methods
     // ----------------
     protected boolean getValueAsBoolean(String value) {
-        switch (value) {
+        switch (KnxSimplifiedTranslation.decode("1.001", value)) {
             case "on":
             case "1":
                 return true;

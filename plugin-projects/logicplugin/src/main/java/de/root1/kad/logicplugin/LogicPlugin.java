@@ -50,15 +50,15 @@ public class LogicPlugin extends KadPlugin {
     KnxServiceDataListener listener = new KnxServiceDataListener() {
 
         @Override
-        public void onData(String ga, String value) {
+        public void onData(String gaName, String value) {
 
             // forward events from KNX to relevant logic
-            List<Logic> list = gaLogicMap.get(ga);
+            List<Logic> list = gaLogicMap.get(gaName);
             if (list != null) {
                 for (Logic logic : list) {
-                    log.info("Forwarding: '{}' for '{}' to '{}'", value, ga, logic);
+                    log.info("Forwarding value '{}' with DPT '{}' to [{}@{}]'", new Object[]{value, knx.getDPT(gaName), gaName, knx.translateNameToGa(gaName)});
                     try {
-                        logic.onData(ga, value);
+                        logic.onData(gaName, value);
                     } catch (KnxServiceException ex) {
                         ex.printStackTrace();
                     }
