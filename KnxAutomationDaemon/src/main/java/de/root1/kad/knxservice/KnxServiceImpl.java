@@ -195,7 +195,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 for (GroupAddress ga : groupaddressList) {
                     gaMap.put(ga.getName(), ga.getAddress());
                     nameToGaProperties.put(ga.getName(), ga.getAddress());
-                    gaToDptProperties.put(ga.getAddress(), ga.getTypeString());
+                    gaToDptProperties.put(ga.getAddress(), ga.getDataPointType());
                 }
 
                 // writing to cache
