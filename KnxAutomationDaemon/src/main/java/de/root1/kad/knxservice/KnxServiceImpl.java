@@ -1,7 +1,20 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2015 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * 
+ * This file is part of KnxAutomationDaemon (KAD).
+ *
+ *   KAD is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   KAD is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with KAD.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.root1.kad.knxservice;
 
@@ -62,85 +75,101 @@ public class KnxServiceImpl extends KadService implements KnxService {
             @Override
             public void write(final GroupAddressEvent event) {
                 final String ga = event.getDestination();
-                final String gaName = translateGaToName(ga);
+                String gaName = null;
+                try {
+                    gaName = translateGaToName(ga);
+                } catch (KnxServiceConfigurationException ex) {
+                    log.warn("Received data from " + event.getSource() + " for "+ga+", but GA is unkonown and cannot be resolved to a name. Dropping data.", ex);
+                    return;
+                }
+                final String finalGaName = gaName;
 
-                // execute async in thread-pool
-                Runnable r = new Runnable() {
+                synchronized (listeners) {
 
-                    @Override
-                    public void run() {
-                        synchronized (listeners) {
-
-                            // get listeners for this specific ga name
-                            List<KnxServiceDataListener> list = listeners.get(gaName);
-                            if (list == null) {
-                                log.debug("There's no special listener for [{}@{}]", gaName, ga);
-                                list = new ArrayList<>();
-                            } else {
-                                log.debug("{} listeners for [{}@{}]", list.size(), gaName, ga);
-                            }
-
-                            // get also wildcard listeners, listening for all addresses
-                            List<KnxServiceDataListener> globalList = listeners.get("*");
-                            if (globalList != null) {
-                                log.debug("{} wildcard listeners", globalList.size());
-                                list.addAll(globalList);
-                            }
-
-                            for (KnxServiceDataListener listener : list) {
-
-                                String dpt = gaToDptProperties.getProperty(ga);
-
-                                if (dpt==null || dpt.startsWith("-1")) {
-                                    log.error("There's no DPT for ["+gaName+"@"+ga+"] known?! Can not read --> will not forward. Skipping.");
-                                    return;
-                                }
-                                String[] split = dpt.split("\\.");
-                                int mainType = Integer.parseInt(split[0]);
-                                
-                                try {
-                                    String value = event.asString(mainType, dpt); // slicknx/calimero string style
-                                    value = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
-                                    
-                                    listener.onData(gaName, value);
-                                    log.debug("Forward '{}' with '{}' to [{}@{}]", new Object[]{value, dpt, translateGaToName(ga), ga});
-                                } catch (KnxFormatException ex) {
-                                    log.error("Error sending value with DPT "+dpt+" to "+ga, ex);
-                                }
-
-                            }
-
-                        }
+                    // get listeners for this specific ga name
+                    List<KnxServiceDataListener> list = listeners.get(finalGaName);
+                    if (list == null) {
+                        log.debug("There's no special listener for [{}@{}]", finalGaName, ga);
+                        list = new ArrayList<>();
+                    } else {
+                        log.debug("{} listeners for [{}@{}]", list.size(), finalGaName, ga);
                     }
-                };
-                pool.execute(r);
 
+                    // get also wildcard listeners, listening for all addresses
+                    List<KnxServiceDataListener> globalList = listeners.get("*");
+                    if (globalList != null) {
+                        log.debug("{} wildcard listeners", globalList.size());
+                        list.addAll(globalList);
+                    }
+
+                    for (final KnxServiceDataListener listener : list) {
+
+                        final String dpt = gaToDptProperties.getProperty(ga);
+
+                        if (dpt == null || dpt.startsWith("-1")) {
+                            log.error("There's no DPT for [" + finalGaName + "@" + ga + "] known?! Can not read --> will not forward. Skipping.");
+                            return;
+                        }
+                        String[] split = dpt.split("\\.");
+                        int mainType = Integer.parseInt(split[0]);
+
+                        try {
+                            String value = event.asString(mainType, dpt); // slicknx/calimero string style
+                            final String finalValue = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
+
+                            // execute listener async in thread-pool
+                            Runnable r = new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    log.debug("Forwarding '{}' with '{}' to [{}@{}]", new Object[]{finalValue, dpt, finalGaName, ga});
+                                    listener.onData(finalGaName, finalValue);
+                                }
+
+                            };
+                            pool.execute(r);
+
+                        } catch (KnxFormatException ex) {
+                            log.error("Error sending value with DPT " + dpt + " to " + ga, ex);
+                        }
+
+                    }
+
+                }
             }
+
         };
+
         try {
             knx = new Knx();
             knx.setGlobalGroupAddressListener(gal);
             knx.setIndividualAddress(defaultIA);
         } catch (KnxException ex) {
-            ex.printStackTrace();
+            log.error("Error setting up knx access", ex);
         }
-        log.info("Reading knx project data ...");
+
+        log.info(
+            "Reading knx project data ...");
         readKnxProjectData();
     }
 
     private File cachedGaPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.ga.properties");
     private File cachedDptPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.dpt.properties");
     private File knxprojData = new File(System.getProperty("kad.basedir") + File.separator + "conf" + File.separator + "knxproject.knxproj");
-    /** NAME -> GA */
+    /**
+     * NAME -> GA
+     */
     private Properties nameToGaProperties = new Properties();
-    /** GA -> DPT */
+    /**
+     * GA -> DPT
+     */
     private Properties gaToDptProperties = new Properties();
 
     private void readKnxProjectData() {
 
         String checksumCache = "notyetread";
         String checksumCacheKnxprojUserxml = "notyetcalculated";
-        
+
         String checksumKnxproj = "notyetcalculated";
         String checksumKnxprojUserxml = "notyetcalculated";
 
@@ -168,10 +197,10 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 log.warn("No knxproject data available. Using cached value only!");
                 useCacheOnly = true;
             }
-            
+
             if (knxprojData.exists()) {
                 checksumKnxprojUserxml = de.root1.kad.Utils.createSHA1(knxprojData);
-            } 
+            }
 
             if (useCacheOnly || (checksumCache.equals(checksumKnxproj) && checksumCacheKnxprojUserxml.equals(checksumKnxprojUserxml))) {
 
@@ -260,13 +289,18 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     @Override
     public String read(String gaName) throws KnxServiceException {
+
         String ga = translateNameToGa(gaName);
         String dpt = getDPT(gaName);
+
         try {
-            return knx.read(gaName, dpt);
+            String value = knx.read(ga, dpt);
+            value = KnxSimplifiedTranslation.decode(dpt, value);
+            return value;
         } catch (KnxException ex) {
             throw new KnxServiceException("Problem reading with DPT " + dpt + " from " + ga, ex);
         }
+
     }
 
     @Override
@@ -282,7 +316,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
     }
 
     @Override
-    public void registerListener(String gaName, KnxServiceDataListener listener) {
+    public void registerListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException {
         String ga = translateNameToGa(gaName);
         synchronized (listeners) {
             List<KnxServiceDataListener> list = listeners.get(ga);
@@ -295,7 +329,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
     }
 
     @Override
-    public void unregisterListener(String gaName, KnxServiceDataListener listener) {
+    public void unregisterListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException {
         String ga = translateNameToGa(gaName);
         synchronized (listeners) {
             List<KnxServiceDataListener> list = listeners.get(ga);
@@ -309,28 +343,36 @@ public class KnxServiceImpl extends KadService implements KnxService {
     }
 
     @Override
-    protected Class getServiceClass() {
+    protected Class
+        getServiceClass() {
         return KnxService.class;
     }
 
     @Override
-    public String translateNameToGa(String gaName) {
+    public String translateNameToGa(String gaName) throws KnxServiceConfigurationException {
         if (gaName.equals("*")) {
             return "*";
         } else {
-            String name = nameToGaProperties.get(gaName).toString();
-            return name!=null?name:gaName;
+            String name = (String)nameToGaProperties.get(gaName);
+            if (name == null) {
+                throw new KnxServiceConfigurationException("Group address name [" + gaName + "] can not be resolved to a groupaddress. Name unkown.");
+            }
+            return name;
         }
     }
 
     @Override
-    public String getDPT(String gaName) {
+    public String getDPT(String gaName) throws KnxServiceConfigurationException {
         String ga = translateNameToGa(gaName);
-        return gaToDptProperties.getProperty(ga);
+        String dpt = gaToDptProperties.getProperty(ga);
+        if (dpt == null) {
+            throw new KnxServiceConfigurationException("Group address [" + gaName + "@" + ga + "] has no associated DPT. Please update configuration.");
+        }
+        return dpt;
     }
 
     @Override
-    public String translateGaToName(String ga) {
+    public String translateGaToName(String ga) throws KnxServiceConfigurationException {
         Enumeration<Object> keys = nameToGaProperties.keys();
         while (keys.hasMoreElements()) {
             String name = (String) keys.nextElement();
@@ -339,7 +381,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 return name;
             }
         }
-        return "[no name translation for ga="+ga+"]";
+        throw new KnxServiceConfigurationException("Group address [" + ga + "] can not be resolved to a groupaddress name. GA unkown.");
     }
 
 }

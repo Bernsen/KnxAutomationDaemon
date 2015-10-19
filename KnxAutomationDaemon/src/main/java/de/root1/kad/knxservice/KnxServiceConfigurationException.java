@@ -18,27 +18,19 @@
  */
 package de.root1.kad.knxservice;
 
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  *
  * @author achristian
  */
-public class NamedThreadFactory implements ThreadFactory{
-    
-    private final String name;
-    private AtomicInteger i = new AtomicInteger(0);
+public class KnxServiceConfigurationException extends KnxServiceException {
 
-    public NamedThreadFactory(String name) {
-        this.name = name;
+    public KnxServiceConfigurationException(String msg, Exception cause) {
+        super(msg, cause);
+    }
+
+    public KnxServiceConfigurationException(String message) {
+        super(message);
     }
     
-    @Override
-    public Thread newThread(Runnable r) {
-        int number = i.incrementAndGet();
-        String threadName = name+"#"+number;
-        return new Thread(r, threadName);
-    }
     
 }

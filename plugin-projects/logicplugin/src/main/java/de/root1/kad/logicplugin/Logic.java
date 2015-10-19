@@ -19,6 +19,7 @@
 package de.root1.kad.logicplugin;
 
 import de.root1.kad.knxservice.KnxService;
+import de.root1.kad.knxservice.KnxServiceConfigurationException;
 import de.root1.kad.knxservice.KnxServiceException;
 import de.root1.kad.knxservice.KnxSimplifiedTranslation;
 import java.util.ArrayList;
@@ -41,10 +42,14 @@ public abstract class Logic {
 
     }
 
-    public void listenTo(String ga) {
-        groupAddresses.add(ga);
-        log.info("{} now listens to [{}@{}]", getClass().getCanonicalName(), ga, knx.translateNameToGa(ga));
-        knx.registerListener(ga, null);
+    public void listenTo(String gaName) {
+        try {
+            groupAddresses.add(gaName);
+            log.info("{} now listens to [{}@{}]", getClass().getCanonicalName(), gaName, knx.translateNameToGa(gaName));
+            knx.registerListener(gaName, null);
+        } catch (KnxServiceConfigurationException ex) {
+            log.error("Cannot setup listener for groupaddress name '"+gaName+"'.",ex);
+        }
     }
 
     public abstract void init();

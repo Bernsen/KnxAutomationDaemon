@@ -20,6 +20,7 @@ package de.root1.kad.logicplugin;
 
 import de.root1.kad.KadPlugin;
 import de.root1.kad.knxservice.KnxService;
+import de.root1.kad.knxservice.KnxServiceConfigurationException;
 import de.root1.kad.knxservice.KnxServiceDataListener;
 import de.root1.kad.knxservice.KnxServiceException;
 import java.io.File;
@@ -52,17 +53,21 @@ public class LogicPlugin extends KadPlugin {
         @Override
         public void onData(String gaName, String value) {
 
-            // forward events from KNX to relevant logic
-            List<Logic> list = gaLogicMap.get(gaName);
-            if (list != null) {
-                for (Logic logic : list) {
-                    log.info("Forwarding value '{}' with DPT '{}' to [{}@{}]'", new Object[]{value, knx.getDPT(gaName), gaName, knx.translateNameToGa(gaName)});
-                    try {
-                        logic.onData(gaName, value);
-                    } catch (KnxServiceException ex) {
-                        ex.printStackTrace();
+            try {
+                // forward events from KNX to relevant logic
+                List<Logic> list = gaLogicMap.get(gaName);
+                if (list != null) {
+                    for (Logic logic : list) {
+                        log.info("Forwarding value '{}' with DPT '{}' to [{}@{}]'", new Object[]{value, knx.getDPT(gaName), gaName, knx.translateNameToGa(gaName)});
+                        try {
+                            logic.onData(gaName, value);
+                        } catch (KnxServiceException ex) {
+                            ex.printStackTrace();
+                        }
                     }
                 }
+            } catch (KnxServiceConfigurationException ex) {
+                ex.printStackTrace();
             }
         }
     };
@@ -75,7 +80,11 @@ public class LogicPlugin extends KadPlugin {
     public void start() {
         try {
             knx = getService(KnxService.class).get(0);
-            knx.registerListener("*", listener);
+            try {
+                knx.registerListener("*", listener);
+            } catch (KnxServiceConfigurationException ex) {
+                ex.printStackTrace();
+            }
 
             log.info("Starting Plugin {}", getClass().getCanonicalName());
 
@@ -109,7 +118,11 @@ public class LogicPlugin extends KadPlugin {
     @Override
     public void stop() {
         log.info("Stopping Plugin {}", getClass().getCanonicalName());
-        knx.unregisterListener("*", listener);
+        try {
+            knx.unregisterListener("*", listener);
+        } catch (KnxServiceConfigurationException ex) {
+            ex.printStackTrace();
+        }
         knx = null;
         log.info("Stopping Plugin {} *DONE*", getClass().getCanonicalName());
     }

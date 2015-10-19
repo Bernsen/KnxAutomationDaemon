@@ -1,7 +1,20 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2015 Alexander Christian <alex(at)root1.de>. All rights reserved.
+ * 
+ * This file is part of KnxAutomationDaemon (KAD).
+ *
+ *   KAD is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   KAD is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with KAD.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.root1.kad.knxservice;
 
@@ -15,23 +28,26 @@ public interface KnxService {
     /**
      * Translates a name of groupaddress to the configured groupaddress
      * @param gaName name of groupaddress, like "foobar"
+     * @throws KnxServiceConfigurationException
      * @return groupaddress, like "1/2/3"
      */
-    public String translateNameToGa(String gaName);
+    public String translateNameToGa(String gaName) throws KnxServiceConfigurationException;
     
     /**
      * Translates a groupaddress to the configured groupaddress name
      * @param ga groupaddress, like "1/2/3"
+     * @throws KnxServiceConfigurationException
      * @return groupaddress, like "foobar"
      */
-    public String translateGaToName(String ga);
+    public String translateGaToName(String ga) throws KnxServiceConfigurationException;
     
     /**
      * Returns DPT of given groupaddress name
      * @param gaName
+     * @throws KnxServiceConfigurationException
      * @return DPT, like "1.001"
      */
-    public String getDPT(String gaName);
+    public String getDPT(String gaName) throws KnxServiceConfigurationException;
     
     /**
      * Write data to knx implementation has to lookup the required GA + DPT for
@@ -74,7 +90,7 @@ public interface KnxService {
      */
     public String read(String individualAddress, String gaName) throws KnxServiceException;
     
-    public void registerListener(String gaName, KnxServiceDataListener listener);
-    public void unregisterListener(String gaName, KnxServiceDataListener listener);
+    public void registerListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException;
+    public void unregisterListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException;
 
 }
