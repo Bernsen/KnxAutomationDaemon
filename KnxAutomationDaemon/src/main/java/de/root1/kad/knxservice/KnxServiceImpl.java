@@ -79,7 +79,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 try {
                     gaName = translateGaToName(ga);
                 } catch (KnxServiceConfigurationException ex) {
-                    log.warn("Received data from " + event.getSource() + " for "+ga+", but GA is unkonown and cannot be resolved to a name. Dropping data.", ex);
+                    log.warn("Received data from " + event.getSource() + " for "+ga+", but GA is unknown and cannot be resolved to a name. Dropping data.", ex);
                     return;
                 }
                 final String finalGaName = gaName;
