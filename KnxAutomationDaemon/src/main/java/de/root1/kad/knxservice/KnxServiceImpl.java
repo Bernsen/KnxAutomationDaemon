@@ -79,7 +79,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 try {
                     gaName = translateGaToName(ga);
                 } catch (KnxServiceConfigurationException ex) {
-                    log.warn("Received data from " + event.getSource() + " for "+ga+", but GA is unknown and cannot be resolved to a name. Dropping data.", ex);
+                    log.warn("Received data from " + event.getSource() + " for " + ga + ", but GA is unknown and cannot be resolved to a name. Dropping data.", ex);
                     return;
                 }
                 final String finalGaName = gaName;
@@ -140,6 +140,8 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
         };
 
+        log.info("Reading knx project data ...");
+        readKnxProjectData();
         try {
             knx = new Knx();
             knx.setGlobalGroupAddressListener(gal);
@@ -148,9 +150,6 @@ public class KnxServiceImpl extends KadService implements KnxService {
             log.error("Error setting up knx access", ex);
         }
 
-        log.info(
-            "Reading knx project data ...");
-        readKnxProjectData();
     }
 
     private File cachedGaPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.ga.properties");
@@ -353,7 +352,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
         if (gaName.equals("*")) {
             return "*";
         } else {
-            String name = (String)nameToGaProperties.get(gaName);
+            String name = (String) nameToGaProperties.get(gaName);
             if (name == null) {
                 throw new KnxServiceConfigurationException("Group address name [" + gaName + "] can not be resolved to a groupaddress. Name unkown.");
             }
