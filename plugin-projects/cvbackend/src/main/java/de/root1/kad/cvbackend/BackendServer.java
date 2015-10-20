@@ -179,6 +179,7 @@ public class BackendServer extends NanoHttpdSSE {
 
     private Response handleWrite(IHTTPSession session) {
 
+        long start = System.currentTimeMillis();
         // s=SESSION&a=ADDRESS1&a=...&v=VALUE
         Map<String, List<String>> params = getParams(session);
         log.info("write params: {}", params);
@@ -198,7 +199,7 @@ public class BackendServer extends NanoHttpdSSE {
                 ex.printStackTrace();
             }
         }
-
+        log.info("done with write for {}: {}ms", params, System.currentTimeMillis()-start);
         return new Response(Status.OK, MIME_PLAINTEXT, "");
 
     }
@@ -297,12 +298,25 @@ public class BackendServer extends NanoHttpdSSE {
             }
         };
 
-        log.info("Waiting for session closed for {}", session);
         try {
-            sse.waitForTrouble();
-        } catch (InterruptedException ex) {
+            
+            for (String addr : addresses) {
+                knx.registerListener(addr, listener);
+            }
+
+            log.info("Waiting for session closed for {}", userSessionID.getId());
+            try {
+                sse.waitForTrouble();
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+            for (String addr : addresses) {
+                knx.unregisterListener(addr, listener);
+            }
+        } catch (KnxServiceException ex) {
             ex.printStackTrace();
         }
+        log.info("Session closed for {}", userSessionID.getId());
         return sse;
     }
 

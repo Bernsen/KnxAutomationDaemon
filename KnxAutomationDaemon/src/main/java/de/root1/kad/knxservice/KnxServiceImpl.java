@@ -75,6 +75,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
             @Override
             public void write(final GroupAddressEvent event) {
                 final String ga = event.getDestination();
+                final String dpt = gaToDptProperties.getProperty(ga);
                 String gaName = null;
                 try {
                     gaName = translateGaToName(ga);
@@ -87,7 +88,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 synchronized (listeners) {
 
                     // get listeners for this specific ga name
-                    List<KnxServiceDataListener> list = listeners.get(finalGaName);
+                    List<KnxServiceDataListener> list = listeners.get(ga);
                     if (list == null) {
                         log.debug("There's no special listener for [{}@{}]", finalGaName, ga);
                         list = new ArrayList<>();
@@ -96,43 +97,51 @@ public class KnxServiceImpl extends KadService implements KnxService {
                     }
 
                     // get also wildcard listeners, listening for all addresses
-                    List<KnxServiceDataListener> globalList = listeners.get("*");
+                    final List<KnxServiceDataListener> globalList = listeners.get("*");
                     if (globalList != null) {
                         log.debug("{} wildcard listeners", globalList.size());
-                        list.addAll(globalList);
                     }
 
-                    for (final KnxServiceDataListener listener : list) {
+                    if (dpt == null || dpt.startsWith("-1")) {
+                        log.error("There's no DPT for [" + finalGaName + "@" + ga + "] known?! Can not read --> will not forward. Skipping.");
+                        return;
+                    }
+                    String[] split = dpt.split("\\.");
+                    int mainType = Integer.parseInt(split[0]);
 
-                        final String dpt = gaToDptProperties.getProperty(ga);
+                    try {
+                        String value = event.asString(mainType, dpt); // slicknx/calimero string styleq
+                        final String finalValue = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
 
-                        if (dpt == null || dpt.startsWith("-1")) {
-                            log.error("There's no DPT for [" + finalGaName + "@" + ga + "] known?! Can not read --> will not forward. Skipping.");
-                            return;
-                        }
-                        String[] split = dpt.split("\\.");
-                        int mainType = Integer.parseInt(split[0]);
-
-                        try {
-                            String value = event.asString(mainType, dpt); // slicknx/calimero string style
-                            final String finalValue = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
-
+                        for (final KnxServiceDataListener listener : list) {
                             // execute listener async in thread-pool
                             Runnable r = new Runnable() {
 
                                 @Override
                                 public void run() {
-                                    log.debug("Forwarding '{}' with '{}' to [{}@{}]", new Object[]{finalValue, dpt, finalGaName, ga});
+                                    log.info("Forwarding '{}' with '{}' to [{}@{}]->{}", new Object[]{finalValue, dpt, finalGaName, ga, listener});
                                     listener.onData(finalGaName, finalValue);
                                 }
 
                             };
                             pool.execute(r);
-
-                        } catch (KnxFormatException ex) {
-                            log.error("Error sending value with DPT " + dpt + " to " + ga, ex);
                         }
+                        
+                        for (final KnxServiceDataListener listener : globalList) {
+                            // execute listener async in thread-pool
+                            Runnable r = new Runnable() {
 
+                                @Override
+                                public void run() {
+                                    log.debug("Forwarding wildcard '{}' with '{}' to [{}@{}]->{}", new Object[]{finalValue, dpt, finalGaName, ga, listener});
+                                    listener.onData(finalGaName, finalValue);
+                                }
+
+                            };
+                            pool.execute(r);
+                        }
+                    } catch (KnxFormatException ex) {
+                        log.error("Error sending value with DPT " + dpt + " to " + ga, ex);
                     }
 
                 }
@@ -317,6 +326,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
     @Override
     public void registerListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException {
         String ga = translateNameToGa(gaName);
+        log.info("[{}@{}]", gaName, ga);
         synchronized (listeners) {
             List<KnxServiceDataListener> list = listeners.get(ga);
             if (list == null) {
@@ -330,6 +340,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
     @Override
     public void unregisterListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException {
         String ga = translateNameToGa(gaName);
+        log.info("[{}@{}]", gaName, ga);
         synchronized (listeners) {
             List<KnxServiceDataListener> list = listeners.get(ga);
             if (list != null) {
@@ -343,7 +354,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     @Override
     protected Class
-        getServiceClass() {
+            getServiceClass() {
         return KnxService.class;
     }
 

@@ -82,6 +82,7 @@ public class KnxSimplifiedTranslation {
 
                 }
                 break;
+            case 5:
             case 9:
                 value = removeUnit(mainDpt, value);
         }
