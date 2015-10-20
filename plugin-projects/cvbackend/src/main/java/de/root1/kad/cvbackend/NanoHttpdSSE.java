@@ -917,6 +917,8 @@ public abstract class NanoHttpdSSE {
                 }
                 outputStream.flush();
                 safeClose(data);
+                // AC: Force close --> good idea?? --> speeds up TTFB
+                outputStream.close();
             } catch (IOException ioe) {
                 // Couldn't write? No can do.
             }
