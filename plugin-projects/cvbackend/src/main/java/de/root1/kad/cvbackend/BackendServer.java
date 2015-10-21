@@ -199,7 +199,7 @@ public class BackendServer extends NanoHttpdSSE {
                 ex.printStackTrace();
             }
         }
-        log.info("done with write for {}: {}ms", params, System.currentTimeMillis()-start);
+        log.info("done with write for {}: {}ms", params, System.currentTimeMillis() - start);
         return new Response(Status.OK, MIME_PLAINTEXT, "");
 
     }
@@ -248,39 +248,29 @@ public class BackendServer extends NanoHttpdSSE {
 
         KnxServiceDataListener listener = new KnxServiceDataListener() {
 
-            private long lastSend = System.currentTimeMillis();
-
-            private Timer t;
-            private TimerTask tt = new TimerTask() {
-
-                @Override
-                public void run() {
-                    // skip if not yet required
-//                    if (System.currentTimeMillis()-lastSend > SESSION_TIMEOUT/2) {
-                    JSONObject jsonResponse = new JSONObject();
-                    JSONObject jsonData = new JSONObject();
-                    jsonData.put("", "");
-                    jsonResponse.put("d", jsonData);
-                    jsonResponse.put("i", "1");
-                    boolean trouble = sse.sendMessage(requireUserSession ? finalUserSessionId.getId().toString() : "", "keepalive", jsonResponse.toJSONString());
-                    log.info("Sent keepalive for " + finalUserSessionId);
-                    if (!trouble) {
-                        finalUserSessionId.renew();
-                    }
-                }
-
-            };
+//            private long lastSend = System.currentTimeMillis();
+//
+//            private Timer t;
+//            private TimerTask tt = new TimerTask() {
+//
+//                @Override
+//                public void run() {
+//                    // skip if not yet required
+//                    
+//                }
+//
+//            };
 
             // "constructor"
             {
-                if (requireUserSession) {
-                    String name = "SSE SessionKeepAlive (" + finalUserSessionId.getId().toString() + ")";
-                    t = new Timer(name, true);
-                    log.info("Starting session keep alive timer {}", t);
-                    t.schedule(tt, SESSION_TIMEOUT / 2, SESSION_TIMEOUT / 2);
-                } else {
-                    log.info("No session required, no sessionkeep alive timer required");
-                }
+//                if (requireUserSession) {
+//                    String name = "SSE SessionKeepAlive (" + finalUserSessionId.getId().toString() + ")";
+//                    t = new Timer(name, true);
+//                    log.info("Starting session keep alive timer {}", t);
+//                    t.schedule(tt, 10000, 10000);
+//                } else {
+//                    log.info("No session required, no sessionkeep alive timer required");
+//                }
             }
 
             @Override
@@ -299,14 +289,29 @@ public class BackendServer extends NanoHttpdSSE {
         };
 
         try {
-            
+
             for (String addr : addresses) {
                 knx.registerListener(addr, listener);
             }
 
             log.info("Waiting for session closed for {}", userSessionID.getId());
             try {
-                sse.waitForTrouble();
+                long lastCheck = System.currentTimeMillis();
+                while (!sse.waitForTrouble(1000)) {
+                    if (System.currentTimeMillis() - lastCheck > 10000) {
+                        JSONObject r = new JSONObject();
+                        JSONObject d = new JSONObject();
+                        d.put("", "");
+                        r.put("d", d);
+                        r.put("i", "1");
+                        boolean trouble = sse.sendMessage(requireUserSession ? finalUserSessionId.getId().toString() : "", "keepalive", r.toJSONString());
+                        log.debug("Sent keepalive for " + finalUserSessionId);
+                        if (!trouble) {
+                            finalUserSessionId.renew();
+                        }
+                        lastCheck = System.currentTimeMillis();
+                    }
+                }
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
             }

@@ -740,9 +740,10 @@ public abstract class NanoHttpdSSE {
             return trouble;
         }
         
-        public void waitForTrouble() throws InterruptedException {
+        public boolean waitForTrouble(int timeout) throws InterruptedException {
             synchronized(TROUBLE_NOTIFY) {
-                TROUBLE_NOTIFY.wait();
+                TROUBLE_NOTIFY.wait(timeout);
+                return trouble;
             }
         }
 
@@ -1538,6 +1539,7 @@ public abstract class NanoHttpdSSE {
             }
 
             queryParameterString = parms;
+//            log.info("queryParameterString: '{}'", queryParameterString);
             StringTokenizer st = new StringTokenizer(parms, "&");
             while (st.hasMoreTokens()) {
                 String e = st.nextToken();

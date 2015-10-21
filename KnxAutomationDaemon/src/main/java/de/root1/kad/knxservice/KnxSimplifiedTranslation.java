@@ -38,7 +38,7 @@ public class KnxSimplifiedTranslation {
     }
 
     /**
-     * 
+     * convert calimero/slicknx to simplified
      * @param dpt DPT like "1.001"
      * @param value string value in slicknx/calimero style (with units etc...(
      * @return 
@@ -83,6 +83,7 @@ public class KnxSimplifiedTranslation {
                 }
                 break;
             case 5:
+            case 6:
             case 9:
                 value = removeUnit(mainDpt, value);
         }
@@ -95,9 +96,10 @@ public class KnxSimplifiedTranslation {
         String returnValue = valueWithUnit;
         switch (mainType) {
             case 5:
+            case 6:
             case 9:
                 String[] split = valueWithUnit.split(" ");
-                if (split.length == 2) {
+                if (split.length >= 2) {
                     /*
                      * cut-off all units
                      *  expectation: value is separated from unit with a whitespace and there is just one whitespace
