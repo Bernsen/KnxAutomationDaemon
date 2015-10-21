@@ -46,7 +46,6 @@ public abstract class Logic {
         try {
             groupAddresses.add(gaName);
             log.info("{} now listens to [{}@{}]", getClass().getCanonicalName(), gaName, knx.translateNameToGa(gaName));
-            knx.registerListener(gaName, null);
         } catch (KnxServiceConfigurationException ex) {
             log.error("Cannot setup listener for groupaddress name '"+gaName+"'.",ex);
         }
