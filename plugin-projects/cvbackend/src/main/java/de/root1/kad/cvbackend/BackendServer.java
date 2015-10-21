@@ -305,7 +305,7 @@ public class BackendServer extends NanoHttpdSSE {
                         r.put("d", d);
                         r.put("i", "1");
                         boolean trouble = sse.sendMessage(requireUserSession ? finalUserSessionId.getId().toString() : "", "keepalive", r.toJSONString());
-                        log.debug("Sent keepalive for " + finalUserSessionId);
+                        log.info("Sent keepalive for " + finalUserSessionId);
                         if (!trouble) {
                             finalUserSessionId.renew();
                         }

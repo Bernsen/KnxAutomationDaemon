@@ -209,6 +209,7 @@ public abstract class NanoHttpdSSE {
                         final Socket clientSocket = myServerSocket.accept();
                         registerConnection(clientSocket);
                         clientSocket.setSoTimeout(SOCKET_READ_TIMEOUT);
+                        clientSocket.setTcpNoDelay(true);
                         final InputStream inputStream = clientSocket.getInputStream();
                         asyncRunner.exec(new Runnable() {
                             @Override
