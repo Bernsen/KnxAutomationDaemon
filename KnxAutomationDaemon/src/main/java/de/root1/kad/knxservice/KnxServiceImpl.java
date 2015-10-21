@@ -31,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -113,6 +114,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                         String value = event.asString(mainType, dpt); // slicknx/calimero string styleq
                         final String finalValue = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
 
+                        
                         for (final KnxServiceDataListener listener : list) {
                             // execute listener async in thread-pool
                             Runnable r = new Runnable() {
@@ -325,6 +327,12 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     @Override
     public void registerListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException {
+        if (gaName==null || gaName.isEmpty()) {
+            throw new IllegalArgumentException("gaName must not be null or empty");
+        }
+        if (listener==null) {
+            throw new IllegalArgumentException("lister must not be null");
+        }
         String ga = translateNameToGa(gaName);
         log.info("[{}@{}]", gaName, ga);
         synchronized (listeners) {
@@ -339,6 +347,12 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     @Override
     public void unregisterListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException {
+        if (gaName==null || gaName.isEmpty()) {
+            throw new IllegalArgumentException("gaName must not be null or empty");
+        }
+        if (listener==null) {
+            throw new IllegalArgumentException("lister must not be null");
+        }
         String ga = translateNameToGa(gaName);
         log.info("[{}@{}]", gaName, ga);
         synchronized (listeners) {
@@ -353,8 +367,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
     }
 
     @Override
-    protected Class
-            getServiceClass() {
+    protected Class getServiceClass() {
         return KnxService.class;
     }
 
