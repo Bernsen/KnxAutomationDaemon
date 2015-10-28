@@ -21,7 +21,6 @@ package de.root1.kad.logicplugin;
 import de.root1.jrc.CompileException;
 import de.root1.jrc.CompileResult;
 import de.root1.jrc.JavaRuntimeCompiler;
-import de.root1.kad.KadMain;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLClassLoader;
@@ -147,7 +146,7 @@ public class SourceContainer {
                 jrc.addClassPath((URLClassLoader) kadClassloader);
             }
 
-            File compiledScriptsFolder = new File("compiledScripts");
+            File compiledScriptsFolder = new File(System.getProperty("kad.basedir"), "compiledScripts");
 
             CompileResult compileResult = jrc.compileToFile(getCanonicalClassName(), getFile(), compiledScriptsFolder.getCanonicalFile());
 
@@ -190,10 +189,7 @@ public class SourceContainer {
         if (!Objects.equals(this.file, other.file)) {
             return false;
         }
-        if (this.fileSize != other.fileSize) {
-            return false;
-        }
-        return true;
+        return this.fileSize == other.fileSize;
     }
 
     /**
@@ -257,5 +253,12 @@ public class SourceContainer {
     void setKadClassloader(ClassLoader kadClassLoader) {
         this.kadClassloader = kadClassLoader;
     }
+
+    @Override
+    public String toString() {
+        return "SourceContainer("+getCanonicalClassName()+")";
+    }
+    
+    
 
 }

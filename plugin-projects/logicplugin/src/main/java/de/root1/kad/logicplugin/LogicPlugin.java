@@ -90,7 +90,8 @@ public class LogicPlugin extends KadPlugin {
 
             // initial read source files
             sourceContainerList.addAll(Utils.getSourceContainers(scriptsdir));
-
+            log.info("Found scripts: {}", sourceContainerList);
+            
             for (SourceContainer sc : sourceContainerList) {
 
                 log.info("Loading script: " + sc.getCanonicalClassName());
@@ -111,7 +112,7 @@ public class LogicPlugin extends KadPlugin {
 
             log.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
         } catch (LoadSourceException ex) {
-            ex.printStackTrace();
+            log.error("Error loading source", ex);
         }
     }
 

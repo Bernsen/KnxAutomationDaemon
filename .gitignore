@@ -10,3 +10,4 @@
 /plugin-projects/cvbackend/target/
 /plugin-projects/knxcache/target/
 /plugin-projects/knxservice/target/
+/deploy.sh

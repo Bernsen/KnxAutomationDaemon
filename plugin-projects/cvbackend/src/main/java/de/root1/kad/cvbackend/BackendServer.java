@@ -210,13 +210,17 @@ public class BackendServer extends NanoHttpdSSE {
         log.info("read params: {}", params);
 
         UserSessionID userSessionID = null;
-        if (requireUserSession) {
-            userSessionID = validateUserSessionInRequest(session);
+        userSessionID = validateUserSessionInRequest(session);
+        if (userSessionID==null) {
+            return new Response(Status.UNAUTHORIZED, MIME_PLAINTEXT, "");
         }
 
         final UserSessionID finalUserSessionId = userSessionID;
 
         final List<String> addresses = params.get("a");
+        
+        // heartbeat can not be read
+        addresses.remove("KAD.CV.heartbeat");
 
         JSONObject jsonResponse = new JSONObject();
         JSONObject jsonData = new JSONObject();
@@ -236,7 +240,7 @@ public class BackendServer extends NanoHttpdSSE {
                     log.error("Address '" + address + "' not readable");
                 }
             } catch (KnxServiceException ex) {
-                ex.printStackTrace();
+                log.warn("Skipping '"+address+"' due to read problem.", ex);
             }
 
         }
@@ -247,31 +251,6 @@ public class BackendServer extends NanoHttpdSSE {
         sse.sendMessage(null, null, jsonResponse.toJSONString());
 
         KnxServiceDataListener listener = new KnxServiceDataListener() {
-
-//            private long lastSend = System.currentTimeMillis();
-//
-//            private Timer t;
-//            private TimerTask tt = new TimerTask() {
-//
-//                @Override
-//                public void run() {
-//                    // skip if not yet required
-//                    
-//                }
-//
-//            };
-
-            // "constructor"
-            {
-//                if (requireUserSession) {
-//                    String name = "SSE SessionKeepAlive (" + finalUserSessionId.getId().toString() + ")";
-//                    t = new Timer(name, true);
-//                    log.info("Starting session keep alive timer {}", t);
-//                    t.schedule(tt, 10000, 10000);
-//                } else {
-//                    log.info("No session required, no sessionkeep alive timer required");
-//                }
-            }
 
             @Override
             public void onData(String ga, String value) {
@@ -297,18 +276,20 @@ public class BackendServer extends NanoHttpdSSE {
             log.info("Waiting for session closed for {}", userSessionID.getId());
             try {
                 long lastCheck = System.currentTimeMillis();
+                boolean heartbeatState = true;
                 while (!sse.waitForTrouble(1000)) {
-                    if (System.currentTimeMillis() - lastCheck > 10000) {
+                    if (System.currentTimeMillis() - lastCheck > 1000) {
                         JSONObject r = new JSONObject();
                         JSONObject d = new JSONObject();
-                        d.put("", "");
+                        d.put("KAD.CV.heartbeat", heartbeatState?"1":"0");
                         r.put("d", d);
                         r.put("i", "1");
-                        boolean trouble = sse.sendMessage(requireUserSession ? finalUserSessionId.getId().toString() : "", "keepalive", r.toJSONString());
-                        log.info("Sent keepalive for " + finalUserSessionId);
+                        boolean trouble = sse.sendMessage(null, null, r.toJSONString());
+                        log.trace("Sent keepalive for " + finalUserSessionId);
                         if (!trouble) {
                             finalUserSessionId.renew();
                         }
+                        heartbeatState=!heartbeatState; // toggle
                         lastCheck = System.currentTimeMillis();
                     }
                 }

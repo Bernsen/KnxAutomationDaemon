@@ -38,34 +38,39 @@ import ro.fortsoft.pf4j.PluginWrapper;
  */
 public class KadMain {
 
-    private static final JarPluginManager pluginManager;
+    private final JarPluginManager pluginManager = new JarPluginManager();
 
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log;
 
     static {
         JulFormatter.set();
-        pluginManager = new JarPluginManager();
+        log = LoggerFactory.getLogger(KadMain.class);
+        try {
+            String basedir = System.getProperty("kad.basedir", ".");
+            
+            String devPluginsDir = System.getProperty("kad.developmentPluginsDir");
+            String pluginsDir = System.getProperty("kad.pluginsDir");
+            
+            if (devPluginsDir == null) {
+                System.setProperty("kad.developmentPluginsDir", basedir + File.separator + ".." + File.separator + "plugin-projects");
+            }
+            
+            if (pluginsDir == null) {
+                System.setProperty("kad.pluginsDir", basedir + File.separator + "plugins");
+            }
+            
+            log.info("basedir:      {}", Utils.shortenFile(new File(basedir)));
+            log.info("Mode:         {}", System.getProperty("kad.mode", "deployment"));
+            log.info("devPluginDir: {}", System.getProperty("kad.developmentPluginsDir"));
+            log.info("pluginDir:    {}", Utils.shortenFile(new File(System.getProperty("kad.pluginsDir"))));
+        } catch (IOException ex) {
+            log.error("Error while setting up paths.", ex);
+            System.exit(1);
+        }
     }
 
     public KadMain() throws IOException {
 
-        String basedir = System.getProperty("kad.basedir", ".");
-
-        String devPluginsDir = System.getProperty("kad.developmentPluginsDir");
-        String pluginsDir = System.getProperty("kad.pluginsDir");
-
-        if (devPluginsDir == null) {
-            System.setProperty("kad.developmentPluginsDir", basedir + File.separator + ".." + File.separator + "plugin-projects");
-        }
-
-        if (pluginsDir == null) {
-            System.setProperty("kad.pluginsDir", basedir + File.separator + "plugins");
-        }
-
-        log.info("basedir:      {}", Utils.shortenFile(new File(basedir)));
-        log.info("Mode:         {}", System.getProperty("kad.mode", "deployment"));
-        log.info("devPluginDir: {}", System.getProperty("kad.developmentPluginsDir"));
-        log.info("pluginDir:    {}", Utils.shortenFile(new File(System.getProperty("kad.pluginsDir"))));
         
         log.info("Registering main services ...");
         try {

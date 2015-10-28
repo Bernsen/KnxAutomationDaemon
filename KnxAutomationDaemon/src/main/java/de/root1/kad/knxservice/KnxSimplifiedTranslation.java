@@ -49,7 +49,7 @@ public class KnxSimplifiedTranslation {
         int mainDpt = Integer.parseInt(dptSplit[0]);
         String subDpt = dptSplit[1];
 
-        log.debug("Before post-translation: {} dpt: {}", value, dpt);
+        log.debug("Before post-translation: '{}' dpt: '{}'", value, dpt);
         switch (mainDpt) {
             case 1:
                 switch (value.toLowerCase()) {
@@ -84,10 +84,11 @@ public class KnxSimplifiedTranslation {
                 break;
             case 5:
             case 6:
+            case 7:
             case 9:
                 value = removeUnit(mainDpt, value);
         }
-        log.debug("After post-translation: {} dpt: {}", value, dpt);
+        log.debug("After post-translation: '{}' dpt: '{}'", value, dpt);
 
         return value;
     }
@@ -97,6 +98,7 @@ public class KnxSimplifiedTranslation {
         switch (mainType) {
             case 5:
             case 6:
+            case 7:
             case 9:
                 String[] split = valueWithUnit.split(" ");
                 if (split.length >= 2) {
