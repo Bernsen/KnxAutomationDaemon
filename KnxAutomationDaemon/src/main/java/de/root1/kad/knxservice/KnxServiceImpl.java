@@ -61,9 +61,11 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     private GroupAddressListener gal;
     
-    private final KnxCache cache = new KnxCache(1000*60*60*8 /* 8hrs */);
+    private final KnxCache cache;
 
     public KnxServiceImpl() {
+        super();
+        cache = new KnxCache(configProperties);
         this.gal = new GroupAddressListener() {
 
             @Override
@@ -121,7 +123,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
         try {
             knx = new Knx();
             knx.setGlobalGroupAddressListener(gal);
-            knx.setIndividualAddress(defaultIA);
+            knx.setIndividualAddress(configProperties.getProperty("knx.individualaddress", defaultIA));
         } catch (KnxException ex) {
             log.error("Error setting up knx access", ex);
         }

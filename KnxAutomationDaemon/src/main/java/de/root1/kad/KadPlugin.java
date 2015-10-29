@@ -19,11 +19,10 @@ import ro.fortsoft.pf4j.PluginWrapper;
  *
  * @author achristian
  */
-public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin {
+public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin implements KadConfiguration {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    protected final Properties pluginConfig = new Properties();
     private KadMain kadmain;
 
     public KadPlugin(PluginWrapper wrapper) {
@@ -31,13 +30,13 @@ public abstract class KadPlugin extends ro.fortsoft.pf4j.Plugin {
         readConfig();
     }
 
-    private void readConfig() {
-        String pluginId = wrapper.getPluginId();
-        File configFile = new File(Utils.getConfDir(), pluginId + ".properties");
+    public void readConfig() {
+        String id = wrapper.getPluginId();
+        File configFile = new File(Utils.getConfDir(), "plugin_"+id + ".properties");
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(configFile);
-            pluginConfig.load(fis);
+            configProperties.load(fis);
             fis.close();
             log.info("Successfully read config from: {}", configFile.getAbsolutePath());
         } catch (FileNotFoundException ex) {

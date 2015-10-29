@@ -47,11 +47,11 @@ public class CometVisuBackendPlugin extends KadPlugin {
             knxService = service.get(0);
         }
 
-        int port = Integer.parseInt(pluginConfig.getProperty("port", "8080"));
-        int sessionTimeout = Integer.parseInt(pluginConfig.getProperty("sessiontimeout", "120000"));
-        String pa = pluginConfig.getProperty("pa", "0.0.0");
-        String documentRoot = pluginConfig.getProperty("documentroot", "/kad/");
-        boolean requireUserSession = Boolean.parseBoolean(pluginConfig.getProperty("requireusersession", "false"));
+        int port = Integer.parseInt(configProperties.getProperty("port", "8080"));
+        int sessionTimeout = Integer.parseInt(configProperties.getProperty("sessiontimeout", "120000"));
+        String pa = configProperties.getProperty("pa", "0.0.0");
+        String documentRoot = configProperties.getProperty("documentroot", "/kad/");
+        boolean requireUserSession = Boolean.parseBoolean(configProperties.getProperty("requireusersession", "false"));
         log.info("requires user session: {}", requireUserSession);
         backendServer = new BackendServer(port, documentRoot, knxService, sessionTimeout, requireUserSession);
         

@@ -18,12 +18,51 @@
  */
 package de.root1.kad;
 
+import static de.root1.kad.KadConfiguration.configProperties;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  *
  * @author achristian
  */
-public abstract class KadService {
+public abstract class KadService implements KadConfiguration {
 
-    protected abstract Class getServiceClass();
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    public KadService() {
+        readConfig();
+    }
     
+    protected abstract Class getServiceClass();
+
+    @Override
+    public void readConfig() {
+        String id = getClass().getCanonicalName();
+        File configFile = new File(Utils.getConfDir(), "service_" + id + ".properties");
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(configFile);
+            configProperties.load(fis);
+            fis.close();
+            log.info("Successfully read config from: {}", configFile.getAbsolutePath());
+        } catch (FileNotFoundException ex) {
+            log.info("No configfile: {}", configFile.getAbsolutePath());
+        } catch (IOException ex) {
+            log.error("Not able to read config file {}", configFile.getAbsolutePath());
+        } finally {
+            try {
+                if (fis != null) {
+                    fis.close();
+                }
+            } catch (IOException ex) {
+                // nothing to do
+            }
+        }
+    }
+
 }

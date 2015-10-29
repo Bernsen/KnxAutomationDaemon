@@ -40,6 +40,10 @@ public class Utils {
         return new File(getBaseDir(), "conf").getAbsoluteFile();
     }
     
+    public static File getCacheDir() {
+        return new File(getBaseDir(), "cache").getAbsoluteFile();
+    }
+    
     public static String shortenPath(String path) {
         return path.replace(File.separator + "." + File.separator, File.separator);
     }
