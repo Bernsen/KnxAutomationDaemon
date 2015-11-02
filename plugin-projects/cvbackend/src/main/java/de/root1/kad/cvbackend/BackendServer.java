@@ -21,12 +21,16 @@ package de.root1.kad.cvbackend;
 import de.root1.kad.knxservice.KnxService;
 import de.root1.kad.knxservice.KnxServiceDataListener;
 import de.root1.kad.knxservice.KnxServiceException;
+import de.root1.kad.knxservice.NamedThreadFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +72,7 @@ public class BackendServer extends NanoHttpdSSE {
     private final KnxService knx;
     private final int SESSION_TIMEOUT;
     private boolean requireUserSession = false;
+    private final ExecutorService pool = Executors.newCachedThreadPool(new NamedThreadFactory("AsyncPool"));
 
     BackendServer(int port, String documentRoot, KnxService knx, int sessionTimeout, boolean requireUserSession) {
         super(port);
@@ -175,6 +180,19 @@ public class BackendServer extends NanoHttpdSSE {
         String userSessionIdString = requireUserSession ? createUserSessionID(session).getId().toString() : "0";
 
         obj.put("s", userSessionIdString);
+        
+        JSONObject c = new JSONObject();
+        c.put("name", "KnxAutomationDaemon");
+        c.put("transport", "sse");
+        
+        JSONObject r = new JSONObject();
+        r.put("read", "r");
+        r.put("write", "w");
+        r.put("rrd", "rrdfetch");
+        
+        c.put("resources", r);
+        
+        obj.put("c", c);
         log.info("response: {}", obj.toJSONString());
 
         return new Response(obj.toJSONString());
@@ -232,15 +250,21 @@ public class BackendServer extends NanoHttpdSSE {
 
         log.info("Reading addresses: {}", addresses);
 
+        List<String> asyncQuery = new ArrayList<>();
+        
         // client knows nothing. Full response required
         for (String address : addresses) {
 
             try {
-                String value = knx.read(address);
-                if (!value.isEmpty()) {
+                
+//                String value = knx.read(address);
+                String value = knx.getCachedValue(address);
+                
+                if (value!=null && !value.isEmpty()) {
                     jsonData.put(address, value);
                 } else {
-                    log.error("Address '" + address + "' not readable");
+                    log.error("Address '" + address + "' not in cache. will query async.");
+                    asyncQuery.add(address);
                 }
             } catch (KnxServiceException ex) {
                 log.warn("Skipping '"+address+"' due to read problem.", ex);
@@ -253,6 +277,10 @@ public class BackendServer extends NanoHttpdSSE {
         log.info("response: {}", jsonResponse.toJSONString());
         sse.sendMessage(null, null, jsonResponse.toJSONString());
 
+        for (String async : asyncQuery) {
+            pool.execute(new AsyncReadRunnable(sse, knx, async));
+        }
+        
         KnxServiceDataListener listener = new KnxServiceDataListener() {
 
             @Override

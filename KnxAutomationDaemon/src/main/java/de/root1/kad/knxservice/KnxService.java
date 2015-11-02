@@ -90,6 +90,14 @@ public interface KnxService {
      */
     public String read(String individualAddress, String gaName) throws KnxServiceException;
     
+    /**
+     * Returns cached value, or null if not in cache
+     * @param gaName groupaddress name
+     * @return data in human readable format, matching the human readable representation of the underlying DPT, of null if not in cache
+     * @throws de.root1.kad.knxservice.KnxServiceException
+     */
+    public String getCachedValue(String gaName) throws KnxServiceException;
+    
     public void registerListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException;
     public void unregisterListener(String gaName, KnxServiceDataListener listener) throws KnxServiceConfigurationException;
 

@@ -440,4 +440,18 @@ public class KnxServiceImpl extends KadService implements KnxService {
         throw new KnxServiceConfigurationException("Group address [" + ga + "] can not be resolved to a groupaddress name. GA unkown.");
     }
 
+    @Override
+    public String getCachedValue(String gaName) throws KnxServiceException {
+        String value=null;
+        try {
+            String ga = translateNameToGa(gaName);
+            String dpt = getDPT(gaName);
+
+            value = cache.get(ga);
+        } catch (KnxServiceException ex) {
+            throw new KnxServiceException("Problem translating '"+gaName+"' to GA", ex);
+        }
+        return value;        
+    }
+
 }

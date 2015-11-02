@@ -686,7 +686,7 @@ public abstract class NanoHttpdSSE {
             gmtFrmt.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
-        public boolean sendMessage(String id, String event, String message) {
+        public synchronized boolean sendMessage(String id, String event, String message) {
 
             PrintWriter pw = new PrintWriter(outputStream);
             if (!headersent) {
