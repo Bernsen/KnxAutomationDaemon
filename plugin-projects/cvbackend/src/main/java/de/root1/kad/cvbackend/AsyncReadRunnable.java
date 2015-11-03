@@ -36,6 +36,7 @@ public class AsyncReadRunnable implements Runnable {
             if (value != null) {
                 JSONObject jsonResponse = new JSONObject();
                 JSONObject jsonData = new JSONObject();
+                jsonData.put(address, value);
                 jsonResponse.put("d", jsonData);
                 jsonResponse.put("i", "1");
                 log.info("async response: {}", jsonResponse.toJSONString());
