@@ -59,7 +59,7 @@ public class LogicPlugin extends KadPlugin {
                 // forward events from KNX to relevant logic
                 HashSet<Logic> list = new HashSet<>();
                 if (gaLogicMap.containsKey(gaName)) {
-                    gaLogicMap.get(gaName);
+                    list.addAll(gaLogicMap.get(gaName));
                 }
                 if (gaLogicMap.containsKey("*")) {
                     list.addAll(gaLogicMap.get("*"));

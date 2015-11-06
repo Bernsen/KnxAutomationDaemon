@@ -64,6 +64,7 @@ public class KnxSimplifiedTranslation {
                     case "close": //1.009
                     case "start": //1.010
                     case "active": //1.011
+                    case "heating": //1.100
                         value = "1";
                         break;
                     case "off":
@@ -77,6 +78,7 @@ public class KnxSimplifiedTranslation {
                     case "open":
                     case "stop":
                     case "inactive":
+                    case "cooling":
                         value = "0";
                         break;
 
