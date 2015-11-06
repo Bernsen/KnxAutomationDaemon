@@ -26,8 +26,10 @@ import de.root1.kad.knxservice.KnxServiceException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import ro.fortsoft.pf4j.PluginWrapper;
@@ -55,15 +57,19 @@ public class LogicPlugin extends KadPlugin {
 
             try {
                 // forward events from KNX to relevant logic
-                List<Logic> list = gaLogicMap.get(gaName);
-                if (list != null) {
-                    for (Logic logic : list) {
-                        log.info("Forwarding value '{}' with DPT '{}' to [{}@{}]'", new Object[]{value, knx.getDPT(gaName), gaName, knx.translateNameToGa(gaName)});
-                        try {
-                            logic.onData(gaName, value);
-                        } catch (KnxServiceException ex) {
-                            ex.printStackTrace();
-                        }
+                HashSet<Logic> list = new HashSet<>();
+                if (gaLogicMap.containsKey(gaName)) {
+                    gaLogicMap.get(gaName);
+                }
+                if (gaLogicMap.containsKey("*")) {
+                    list.addAll(gaLogicMap.get("*"));
+                }
+                for (Logic logic : list) {
+                    log.info("Forwarding value '{}' from [{}@{}] with DPT '{}' to {}", new Object[]{value, gaName, knx.translateNameToGa(gaName), knx.getDPT(gaName), logic.toString()});
+                    try {
+                        logic.onData(gaName, value);
+                    } catch (KnxServiceException ex) {
+                        ex.printStackTrace();
                     }
                 }
             } catch (KnxServiceConfigurationException ex) {
@@ -91,7 +97,7 @@ public class LogicPlugin extends KadPlugin {
             // initial read source files
             sourceContainerList.addAll(Utils.getSourceContainers(scriptsdir));
             log.info("Found scripts: {}", sourceContainerList);
-            
+
             for (SourceContainer sc : sourceContainerList) {
 
                 log.info("Loading script: " + sc.getCanonicalClassName());
