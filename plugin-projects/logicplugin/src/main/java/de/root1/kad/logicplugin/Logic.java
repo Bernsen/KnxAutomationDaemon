@@ -18,7 +18,7 @@
  */
 package de.root1.kad.logicplugin;
 
-import com.github.cs4j.Scheduler;
+import de.root1.kad.logicplugin.cron.AnnotationScheduler;
 import de.root1.kad.knxservice.KnxService;
 import de.root1.kad.knxservice.KnxServiceConfigurationException;
 import de.root1.kad.knxservice.KnxServiceException;
@@ -74,7 +74,7 @@ public abstract class Logic {
         this.knx = knx;
     }
     
-    void startCron(Scheduler scheduler) {
+    void startCron(AnnotationScheduler scheduler) {
         scheduler.schedule(this);
     }
 

@@ -18,7 +18,7 @@
  */
 package de.root1.kad.logicplugin;
 
-import com.github.cs4j.Scheduler;
+import de.root1.kad.logicplugin.cron.AnnotationScheduler;
 import de.root1.kad.KadPlugin;
 import de.root1.kad.knxservice.KnxService;
 import de.root1.kad.knxservice.KnxServiceConfigurationException;
@@ -50,7 +50,7 @@ public class LogicPlugin extends KadPlugin {
     private final Map<String, List<Logic>> gaLogicMap = new HashMap<>();
 
     private KnxService knx;
-    private Scheduler scheduler;
+    private AnnotationScheduler scheduler;
 
     KnxServiceDataListener listener = new KnxServiceDataListener() {
 
@@ -96,10 +96,7 @@ public class LogicPlugin extends KadPlugin {
 
             log.info("Starting Plugin {}", getClass().getCanonicalName());
 
-            int schedulerThreads = Integer.parseInt(configProperties.getProperty("scheduler.threads", "5"));
-            
-            log.info("Starting cron-scheduler with {} threads", schedulerThreads);
-            scheduler = new Scheduler(schedulerThreads);
+            scheduler = new AnnotationScheduler();
             
             // initial read source files
             sourceContainerList.addAll(Utils.getSourceContainers(srcDir, libDir));
