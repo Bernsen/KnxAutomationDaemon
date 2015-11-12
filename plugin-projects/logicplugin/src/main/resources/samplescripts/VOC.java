@@ -51,8 +51,4 @@ public class VOC extends Logic {
         t.schedule(tt, 5000, 60000);
     }
 
-    @Override
-    public void onData(String gaName, String value) throws KnxServiceException {
-    }
-
 }

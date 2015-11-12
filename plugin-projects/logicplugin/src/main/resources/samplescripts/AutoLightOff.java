@@ -21,7 +21,7 @@ public class AutoLightOff extends Logic {
     }
 
     @Override
-    public void onData(String ga, String value) throws KnxServiceException {
+    public void onDataWrite(String ga, String value) throws KnxServiceException {
         boolean state = getValueAsBoolean(value); // get presence state from knx event
         if (lastState && !state) { // if presence is gone ...
             write(lightBathroom, getBooleanAsValue(false)); // ... turn off the light

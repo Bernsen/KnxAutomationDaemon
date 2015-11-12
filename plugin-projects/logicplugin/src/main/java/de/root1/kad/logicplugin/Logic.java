@@ -38,6 +38,8 @@ public abstract class Logic {
     private KnxService knx;
     private final List<String> groupAddresses = new ArrayList<>();
     private String pa;
+    
+    public enum TYPE {READ, WRITE, RESPONSE, UNDEFINED};
 
     public Logic() {
 
@@ -54,7 +56,13 @@ public abstract class Logic {
 
     public abstract void init();
 
-    public abstract void onData(String ga, String value) throws KnxServiceException;
+    public void onDataWrite(String ga, String value) throws KnxServiceException {
+        
+    }
+    
+    public void onData(String ga, String value, TYPE type) throws KnxServiceException {
+        // needs to be overwritten by logic script
+    }
 
     public List<String> getGroupAddresses() {
         return groupAddresses;
@@ -103,6 +111,14 @@ public abstract class Logic {
             knx.write(pa, gaName, stringData);
         } else {
             knx.write(gaName, stringData);
+        }
+    }
+    
+    public void writeResponse(String gaName, String stringData) throws KnxServiceException {
+        if (pa != null) {
+            knx.writeResponse(pa, gaName, stringData);
+        } else {
+            knx.writeResponse(gaName, stringData);
         }
     }
 

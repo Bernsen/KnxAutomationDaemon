@@ -55,7 +55,7 @@ public class LogicPlugin extends KadPlugin {
     KnxServiceDataListener listener = new KnxServiceDataListener() {
 
         @Override
-        public void onData(String gaName, String value) {
+        public void onData(String gaName, String value, KnxServiceDataListener.TYPE type) {
 
             try {
                 // forward events from KNX to relevant logic
@@ -66,10 +66,29 @@ public class LogicPlugin extends KadPlugin {
                 if (gaLogicMap.containsKey("*")) {
                     list.addAll(gaLogicMap.get("*"));
                 }
+                
+                Logic.TYPE logicType = Logic.TYPE.UNDEFINED;
+                switch(type) {
+                    case READ:
+                        logicType = Logic.TYPE.READ;
+                        break;
+                    case WRITE:
+                        logicType = Logic.TYPE.WRITE;
+                        break;
+                    case RESPONSE:
+                        logicType = Logic.TYPE.RESPONSE;
+                        break;
+                    case UNDEFINED:
+                        log.warn("UNDEFINED message type. will not forward.");
+                        return;
+                }
                 for (Logic logic : list) {
                     log.info("Forwarding value '{}' from [{}@{}] with DPT '{}' to {}", new Object[]{value, gaName, knx.translateNameToGa(gaName), knx.getDPT(gaName), logic.toString()});
                     try {
-                        logic.onData(gaName, value);
+                        if (logicType==Logic.TYPE.WRITE) {
+                            logic.onDataWrite(gaName, value);
+                        }
+                        logic.onData(gaName, value, logicType);
                     } catch (KnxServiceException ex) {
                         ex.printStackTrace();
                     }
