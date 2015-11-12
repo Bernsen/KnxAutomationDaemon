@@ -18,6 +18,7 @@
  */
 package de.root1.kad.logicplugin;
 
+import com.github.cs4j.Scheduler;
 import de.root1.kad.KadPlugin;
 import de.root1.kad.knxservice.KnxService;
 import de.root1.kad.knxservice.KnxServiceConfigurationException;
@@ -49,6 +50,7 @@ public class LogicPlugin extends KadPlugin {
     private final Map<String, List<Logic>> gaLogicMap = new HashMap<>();
 
     private KnxService knx;
+    private Scheduler scheduler;
 
     KnxServiceDataListener listener = new KnxServiceDataListener() {
 
@@ -89,11 +91,16 @@ public class LogicPlugin extends KadPlugin {
             try {
                 knx.registerListener("*", listener);
             } catch (KnxServiceConfigurationException ex) {
-                ex.printStackTrace();
+                log.error("Errir registering wildcard listener on knx service", ex);
             }
 
             log.info("Starting Plugin {}", getClass().getCanonicalName());
 
+            int schedulerThreads = Integer.parseInt(configProperties.getProperty("scheduler.threads", "5"));
+            
+            log.info("Starting cron-scheduler with {} threads", schedulerThreads);
+            scheduler = new Scheduler(schedulerThreads);
+            
             // initial read source files
             sourceContainerList.addAll(Utils.getSourceContainers(srcDir, libDir));
             log.info("Found scripts: {}", sourceContainerList);
@@ -106,6 +113,8 @@ public class LogicPlugin extends KadPlugin {
                     sc.setKadClassloader(getKadClassLoader());
                     Logic logic = sc.loadLogic();
                     logic.setKnxService(knx);
+                    logic.startCron(scheduler);
+                    
                     log.info("Initialize logic {} ...", logic.getClass().getCanonicalName());
                     logic.init();
                     logicList.add(logic);
