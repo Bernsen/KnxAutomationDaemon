@@ -180,18 +180,18 @@ public class BackendServer extends NanoHttpdSSE {
         String userSessionIdString = requireUserSession ? createUserSessionID(session).getId().toString() : "0";
 
         obj.put("s", userSessionIdString);
-        
+
         JSONObject c = new JSONObject();
         c.put("name", "KnxAutomationDaemon");
         c.put("transport", "sse");
-        
+
         JSONObject r = new JSONObject();
         r.put("read", "r");
         r.put("write", "w");
         r.put("rrd", "rrdfetch");
-        
+
         c.put("resources", r);
-        
+
         obj.put("c", c);
         log.info("response: {}", obj.toJSONString());
 
@@ -232,14 +232,14 @@ public class BackendServer extends NanoHttpdSSE {
 
         UserSessionID userSessionID = null;
         userSessionID = validateUserSessionInRequest(session);
-        if (userSessionID==null) {
+        if (userSessionID == null) {
             return new Response(Status.UNAUTHORIZED, MIME_PLAINTEXT, "");
         }
 
         final UserSessionID finalUserSessionId = userSessionID;
 
         final List<String> addresses = params.get("a");
-        
+
         // heartbeat can not be read
         addresses.remove("KAD.CV.heartbeat");
 
@@ -251,23 +251,23 @@ public class BackendServer extends NanoHttpdSSE {
         log.info("Reading addresses: {}", addresses);
 
         List<String> asyncQuery = new ArrayList<>();
-        
+
         // client knows nothing. Full response required
         for (String address : addresses) {
 
             try {
-                
+
 //                String value = knx.read(address);
                 String value = knx.getCachedValue(address);
-                
-                if (value!=null && !value.isEmpty()) {
+
+                if (value != null && !value.isEmpty()) {
                     jsonData.put(address, value);
                 } else {
                     log.error("Address '" + address + "' not in cache. will query async.");
                     asyncQuery.add(address);
                 }
             } catch (KnxServiceException ex) {
-                log.warn("Skipping '"+address+"' due to read problem.", ex);
+                log.warn("Skipping '" + address + "' due to read problem.", ex);
             }
 
         }
@@ -280,20 +280,22 @@ public class BackendServer extends NanoHttpdSSE {
         for (String async : asyncQuery) {
             pool.execute(new AsyncReadRunnable(sse, knx, async));
         }
-        
+
         KnxServiceDataListener listener = new KnxServiceDataListener() {
 
             @Override
-            public void onData(String ga, String value) {
-                JSONObject jsonResponse = new JSONObject();
-                JSONObject jsonData = new JSONObject();
-                jsonData.put(ga, value);
-                jsonResponse.put("d", jsonData);
-                jsonResponse.put("i", "1");
-                log.info("response: {}", jsonResponse.toJSONString());
-                boolean trouble = sse.sendMessage(null, null, jsonResponse.toJSONString());
-                if (!trouble) {
-                    finalUserSessionId.renew();
+            public void onData(String ga, String value, KnxServiceDataListener.TYPE type) {
+                if (type == TYPE.WRITE) {
+                    JSONObject jsonResponse = new JSONObject();
+                    JSONObject jsonData = new JSONObject();
+                    jsonData.put(ga, value);
+                    jsonResponse.put("d", jsonData);
+                    jsonResponse.put("i", "1");
+                    log.info("response: {}", jsonResponse.toJSONString());
+                    boolean trouble = sse.sendMessage(null, null, jsonResponse.toJSONString());
+                    if (!trouble) {
+                        finalUserSessionId.renew();
+                    }
                 }
             }
         };
@@ -312,7 +314,7 @@ public class BackendServer extends NanoHttpdSSE {
                     if (System.currentTimeMillis() - lastCheck > 1000) {
                         JSONObject r = new JSONObject();
                         JSONObject d = new JSONObject();
-                        d.put("KAD.CV.heartbeat", heartbeatState?"1":"0");
+                        d.put("KAD.CV.heartbeat", heartbeatState ? "1" : "0");
                         r.put("d", d);
                         r.put("i", "1");
                         boolean trouble = sse.sendMessage(null, null, r.toJSONString());
@@ -320,7 +322,7 @@ public class BackendServer extends NanoHttpdSSE {
                         if (!trouble) {
                             finalUserSessionId.renew();
                         }
-                        heartbeatState=!heartbeatState; // toggle
+                        heartbeatState = !heartbeatState; // toggle
                         lastCheck = System.currentTimeMillis();
                     }
                 }
@@ -350,15 +352,12 @@ public class BackendServer extends NanoHttpdSSE {
 //        if (userSessionID==null) {
 //            return new Response(Status.UNAUTHORIZED, MIME_PLAINTEXT, "");
 //        }
-
-
         String rrd = session.getParms().get("rrd");
         String ds = session.getParms().get("ds");
         String start = session.getParms().get("start");
         String end = session.getParms().get("end");
         String res = session.getParms().get("res");
-        
-        
+
         return new Response("["
             + "[1445869830000,[\"2.0700000000E01\"]],"
             + "[1445873874000,[\"2.0600000000E01\"]],"
