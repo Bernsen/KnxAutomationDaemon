@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import ro.fortsoft.pf4j.PluginWrapper;
@@ -40,7 +39,8 @@ import ro.fortsoft.pf4j.PluginWrapper;
  */
 public class LogicPlugin extends KadPlugin {
 
-    private final File scriptsdir = new File(System.getProperty("kad.basedir"), "scripts");
+    private final File srcDir = new File(System.getProperty("kad.basedir")+File.separator+"logic", "src");
+    private final File libDir = new File(System.getProperty("kad.basedir")+File.separator+"logic", "lib");
     private final ExecutorService pool = Executors.newCachedThreadPool();
 
     private final List<Logic> logicList = new ArrayList<>();
@@ -95,7 +95,7 @@ public class LogicPlugin extends KadPlugin {
             log.info("Starting Plugin {}", getClass().getCanonicalName());
 
             // initial read source files
-            sourceContainerList.addAll(Utils.getSourceContainers(scriptsdir));
+            sourceContainerList.addAll(Utils.getSourceContainers(srcDir, libDir));
             log.info("Found scripts: {}", sourceContainerList);
 
             for (SourceContainer sc : sourceContainerList) {

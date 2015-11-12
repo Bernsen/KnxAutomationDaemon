@@ -39,20 +39,21 @@ public class Utils {
     /*
      * Filter for files with .java extension + folders. nothing else.
      */
-    public static final FileFilter scriptFileFilter = new FileFilter() {
+    public static final FileFilter logicFileFilter = new FileFilter() {
         @Override
         public boolean accept(File file) {
 
-            return (file.isFile() && file.getName().endsWith(".java")) || file.isDirectory();
+            // TODO use regex instead!
+            return (file.isFile() && file.getName().startsWith("Logic")&& file.getName().endsWith(".java")) || file.isDirectory();
 
         }
     };
     
-    public static List<SourceContainer> getSourceContainers(File scriptsdir) {
+    public static List<SourceContainer> getSourceContainers(File srcDir, File libDir) {
         List<SourceContainer> result = new ArrayList<>();
 
         Stack<File> stack = new Stack<>();
-        stack.addAll(Arrays.asList(scriptsdir.listFiles(scriptFileFilter)));
+        stack.addAll(Arrays.asList(srcDir.listFiles(logicFileFilter)));
 
         while (!stack.empty()) {
 
@@ -60,13 +61,13 @@ public class Utils {
 
             if (f.isDirectory()) {
 
-                stack.addAll(Arrays.asList(f.listFiles(scriptFileFilter)));
+                stack.addAll(Arrays.asList(f.listFiles(logicFileFilter)));
 
             } else {
 
                 try {
                     // it's a file
-                    SourceContainer sc = new SourceContainer(scriptsdir, f);
+                    SourceContainer sc = new SourceContainer(srcDir, libDir, f);
                     result.add(sc);
 
                 } catch (IOException ex) {

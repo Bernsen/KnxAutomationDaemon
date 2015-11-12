@@ -11,3 +11,6 @@
 /plugin-projects/knxcache/target/
 /plugin-projects/knxservice/target/
 /deploy.sh
+/scriptcollection/nbproject/private/
+/scriptcollection/target/
+/logiccollection/target/

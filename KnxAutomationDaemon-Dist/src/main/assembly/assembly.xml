@@ -44,8 +44,8 @@
             <outputDirectory>conf</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>scripts</directory>
-            <outputDirectory>scripts</outputDirectory>
+            <directory>logic</directory>
+            <outputDirectory>logic</outputDirectory>
         </fileSet>
 
     </fileSets>

@@ -21,9 +21,15 @@ package de.root1.kad.logicplugin;
 import de.root1.jrc.CompileResult;
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,9 +41,34 @@ public class SourceClassLoader extends ClassLoader {
     
     private Logger log = LoggerFactory.getLogger(getClass());
     private CompileResult compileResult;
+    private final URLClassLoader libClassLoader;
 
-    SourceClassLoader(ClassLoader classLoader) {
+    SourceClassLoader(ClassLoader classLoader, File libDir) {
         super(classLoader);
+        
+        List<URL> urlList = new ArrayList<>();
+        if (libDir.isDirectory()) {
+            File[] list = libDir.listFiles(new FileFilter() {
+
+                @Override
+                public boolean accept(File f) {
+                    return f.isFile() && f.getName().endsWith(".jar");
+                }
+                
+               
+            });
+            for (File jar : list) {
+                try {
+                    urlList.add(jar.toURI().toURL());
+                    log.debug("Added JAR: "+jar.getAbsolutePath());
+                } catch (MalformedURLException ex) {
+                    log.warn("Error getting URL from file: "+jar.getAbsolutePath(), ex);
+                }
+            }
+        }
+        
+        libClassLoader = new URLClassLoader(urlList.toArray(new URL[]{}), this);
+        
     }
 
     @Override
@@ -45,7 +76,7 @@ public class SourceClassLoader extends ClassLoader {
         
         if (compileResult.containsClass(classname)) {
             
-            log.debug("Trying to load class [{}] as script from disk", classname);
+            log.debug("Trying to load class [{}] as logicscript from disk", classname);
             DataInputStream dis = null;
             try {
                 
@@ -72,7 +103,8 @@ public class SourceClassLoader extends ClassLoader {
             }
             
         } else {
-            return super.loadClass(classname); 
+            // use lib-CL, which first tries super-CL and then the URL-CL
+            return libClassLoader.loadClass(classname); 
         }
     }
 

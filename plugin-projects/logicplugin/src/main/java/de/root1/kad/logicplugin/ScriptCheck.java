@@ -17,7 +17,8 @@ public class ScriptCheck {
     
     public static void main(String[] args) throws LoadSourceException {
         JulFormatter.set();
-        File scriptsdir = new File(System.getProperty("kad.basedir"), "scripts");
+        File srcDir = new File(System.getProperty("kad.basedir")+File.separator+"logic", "src");
+        File libDir = new File(System.getProperty("kad.basedir")+File.separator+"logic", "lib");
         String scriptToCheck = null;
         
 //        System.out.println(Arrays.toString(args));
@@ -27,11 +28,11 @@ public class ScriptCheck {
         }
         
         if (scriptToCheck!=null) {
-            Utils.log.info("Searching for script ["+scriptToCheck+"] in "+scriptsdir.getAbsolutePath()+" ...");
+            Utils.log.info("Searching for script ["+scriptToCheck+"] in "+srcDir.getAbsolutePath()+" ...");
         } else {
-            Utils.log.info("Searching scripts in "+scriptsdir.getAbsolutePath()+" ...");
+            Utils.log.info("Searching scripts in "+srcDir.getAbsolutePath()+" ...");
         }
-        List<SourceContainer> sourceContainers = Utils.getSourceContainers(scriptsdir);
+        List<SourceContainer> sourceContainers = Utils.getSourceContainers(srcDir, libDir);
         
         for (SourceContainer sourceContainer : sourceContainers) {
             if (scriptToCheck!=null) {

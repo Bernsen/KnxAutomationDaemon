@@ -30,6 +30,7 @@
         <module>KnxAutomationDaemon</module>
         <module>KnxAutomationDaemon-Dist</module>
         <module>plugin-projects</module>
+        <module>scriptcollection</module>
     </modules>
     
     <!-- upload informations for deploying the jar -->

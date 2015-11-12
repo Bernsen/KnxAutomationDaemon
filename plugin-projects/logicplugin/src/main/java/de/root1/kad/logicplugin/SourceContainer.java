@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2015 Alexander Christian <alex(at)root1.de>. All rights reserved.
  * 
- * This file is part of KAD Logic Plugin (KLP).
+ * This logicFile is part of KAD Logic Plugin (KLP).
  *
  *   KLP is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -40,12 +40,12 @@ public class SourceContainer {
     /**
      * e.g. /opt/kad/scripts/de/mypackage/MyClass.java
      */
-    private File file;
+    private File logicFile;
 
     /**
      * e.g. /opt/kad/scripts
      */
-    private File basedir;
+    private File srcDir;
 
     /**
      * e.g. de.mypackage
@@ -70,29 +70,32 @@ public class SourceContainer {
     private String javaSourceFile;
 
     /**
-     * Site in bytes of the java source file
+     * Site in bytes of the java source logicFile
      */
     private long fileSize;
     private ClassLoader kadClassloader;
+    private final File libDir;
 
-    public SourceContainer(File basedir, File file) throws IOException {
+    public SourceContainer(File srcDir, File libDir, File logicFile) throws IOException {
 
-        // shorten paths in file objects if necessary
-        basedir = de.root1.kad.Utils.shortenFile(basedir);
-        file = de.root1.kad.Utils.shortenFile(file);
+        // shorten paths in logicFile objects if necessary
+        srcDir = de.root1.kad.Utils.shortenFile(srcDir);
+        libDir = de.root1.kad.Utils.shortenFile(libDir);
+        logicFile = de.root1.kad.Utils.shortenFile(logicFile);
 
-        this.file = file;
-        this.basedir = basedir;
+        this.logicFile = logicFile;
+        this.srcDir = srcDir;
+        this.libDir = libDir;
 
-        String basedirpath = basedir.getAbsolutePath();
-        String filepath = file.getAbsolutePath();
+        String basedirpath = srcDir.getAbsolutePath();
+        String filepath = logicFile.getAbsolutePath();
 
         if (!filepath.startsWith(basedirpath)) {
             throw new IllegalArgumentException("Given basedir is not a parent of file");
         }
 
         try {
-            checksum = de.root1.kad.Utils.createSHA1(file);
+            checksum = de.root1.kad.Utils.createSHA1(logicFile);
         } catch (NoSuchAlgorithmException ex) {
             throw new RuntimeException("Checksumcreation failed", ex);
         }
@@ -118,7 +121,7 @@ public class SourceContainer {
         className = javaSourceFile.substring(0, javaSourceFile.lastIndexOf("."));
 
         log.debug("className={}", className);
-        fileSize = file.length();
+        fileSize = logicFile.length();
 
     }
 
@@ -145,6 +148,9 @@ public class SourceContainer {
                 jrc.setClassPath((URLClassLoader) getClass().getClassLoader());
                 jrc.addClassPath((URLClassLoader) kadClassloader);
             }
+            
+            jrc.addClassPath(srcDir);
+            jrc.addClassPath(libDir);
 
             File compiledScriptsFolder = new File(System.getProperty("kad.basedir"), "compiledScripts");
 
@@ -152,7 +158,7 @@ public class SourceContainer {
 
             log.debug("compile result: {}", compileResult);
 
-            SourceClassLoader scl = new SourceClassLoader(this.getClass().getClassLoader());
+            SourceClassLoader scl = new SourceClassLoader(this.getClass().getClassLoader(), libDir);
             scl.setCompileResult(compileResult);
 
             Class<?> sourceClass = scl.loadClass(getCanonicalClassName());
@@ -172,7 +178,7 @@ public class SourceContainer {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 79 * hash + Objects.hashCode(this.file);
+        hash = 79 * hash + Objects.hashCode(this.logicFile);
         hash = 79 * hash + (int) (this.fileSize ^ (this.fileSize >>> 32));
         return hash;
     }
@@ -186,7 +192,7 @@ public class SourceContainer {
             return false;
         }
         final SourceContainer other = (SourceContainer) obj;
-        if (!Objects.equals(this.file, other.file)) {
+        if (!Objects.equals(this.logicFile, other.logicFile)) {
             return false;
         }
         return this.fileSize == other.fileSize;
@@ -198,18 +204,26 @@ public class SourceContainer {
      * @return
      */
     public File getFile() {
-        return file;
+        return logicFile;
     }
 
     /**
-     * e.g. /opt/kad/scripts
+     * e.g. /opt/kad/logic/src
      *
      * @return
      */
-    public File getBasedir() {
-        return basedir;
+    public File getSrcDir() {
+        return srcDir;
     }
 
+    /**
+     * e.g. /opt/kad/logic/lib
+     * @return 
+     */
+    public File getLibDir() {
+        return libDir;
+    }
+    
     /**
      * e.g. de.mypackage
      *
@@ -238,7 +252,7 @@ public class SourceContainer {
     }
 
     /**
-     * e.g. MyClass.java
+     * e.g. MyClass.java as String
      *
      * @return
      */
