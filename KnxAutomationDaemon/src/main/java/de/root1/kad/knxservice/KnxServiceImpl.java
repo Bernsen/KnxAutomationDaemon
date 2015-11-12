@@ -67,13 +67,9 @@ public class KnxServiceImpl extends KadService implements KnxService {
         super();
         cache = new KnxCache(configProperties);
         this.gal = new GroupAddressListener() {
-
-            @Override
-            public void readRequest(GroupAddressEvent event) {
-            }
-
-            @Override
-            public void readResponse(GroupAddressEvent event) {
+            
+            private void processEvent(GroupAddressEvent event) {
+                KnxServiceDataListener.TYPE type = KnxServiceDataListener.TYPE.WRITE;
                 
                 String ga=null;
                 String dpt=null;
@@ -84,9 +80,21 @@ public class KnxServiceImpl extends KadService implements KnxService {
                     String[] split = dpt.split("\\.");
                     int mainType = Integer.parseInt(split[0]);
                     String value = event.asString(mainType, dpt); // slicknx/calimero string styleq
+                    switch(event.getType()) {
+                        case GROUP_READ:
+                            type = KnxServiceDataListener.TYPE.READ;
+                            value = null;
+                            break;
+                        case GROUP_RESPONSE:
+                            type = KnxServiceDataListener.TYPE.RESPONSE;
+                            value = KnxSimplifiedTranslation.decode(dpt, value);
+                            break;
+                        case GROUP_WRITE:
+                            type = KnxServiceDataListener.TYPE.WRITE;
+                            break;
+                    }
                     
-                    value = KnxSimplifiedTranslation.decode(dpt, value);
-                    cache.update(ga, value);
+                    fireKnxEvent(ga, gaName, dpt, value, type);
 
                 } catch (KnxFormatException ex) {
                     log.warn("Error converting data to String with DPT"+dpt+". event="+event+" ga="+ga+" gaName='"+gaName+"'", ex);
@@ -94,26 +102,18 @@ public class KnxServiceImpl extends KadService implements KnxService {
             }
 
             @Override
+            public void readRequest(GroupAddressEvent event) {
+                processEvent(event);
+            }
+
+            @Override
+            public void readResponse(GroupAddressEvent event) {
+                processEvent(event);
+            }
+
+            @Override
             public void write(final GroupAddressEvent event) {
-                String ga=null;
-                String dpt=null;
-                String gaName=null;
-                try {
-                    ga = event.getDestination();
-                    gaName = translateGaToName(ga);
-                    dpt = gaToDptProperties.getProperty(ga);
-                    String[] split = dpt.split("\\.");
-                    int mainType = Integer.parseInt(split[0]);
-                    String value = event.asString(mainType, dpt); // slicknx/calimero string styleq
-                    fireWriteEvent(ga, gaName, dpt, value);
-
-                } catch (KnxFormatException ex) {
-                    log.warn("Error converting data to String with DPT"+dpt+". event="+event+" ga="+ga+" gaName='"+gaName+"'", ex);
-                } catch (KnxServiceConfigurationException ex) {
-                    log.warn("Received event " + event + ", but GA "+ga+" is unknown and cannot be resolved to a name. Dropping data.", ex);
-                    return;
-                }
-
+                processEvent(event);
             }
 
         };
@@ -130,9 +130,14 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     }
 
-    private void fireWriteEvent(final String ga, final String finalGaName, final String dpt, String value) {
-        final String finalValue = value = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
-        cache.update(ga, finalValue);
+    private void fireKnxEvent(final String ga, final String finalGaName, final String dpt, String value, final KnxServiceDataListener.TYPE type) {
+        final String finalValue = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
+        switch(type) {
+            case RESPONSE:
+            case WRITE:
+                cache.update(ga, finalValue);
+                break;
+        }
         synchronized (listeners) {
 
             // get listeners for this specific ga name
@@ -155,7 +160,6 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 return;
             }
 
-
             for (final KnxServiceDataListener listener : list) {
                 // execute listener async in thread-pool
                 Runnable r = new Runnable() {
@@ -163,7 +167,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                     @Override
                     public void run() {
                         log.info("Forwarding '{}' with '{}' to [{}@{}]->{}", new Object[]{finalValue, dpt, finalGaName, ga, listener});
-                        listener.onData(finalGaName, finalValue);
+                        listener.onData(finalGaName, finalValue, type);
                     }
 
                 };
@@ -178,7 +182,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                         @Override
                         public void run() {
                             log.debug("Forwarding wildcard '{}' with '{}' to [{}@{}]->{}", new Object[]{finalValue, dpt, finalGaName, ga, listener});
-                            listener.onData(finalGaName, finalValue);
+                            listener.onData(finalGaName, finalValue, type);
                         }
 
                     };
@@ -298,6 +302,32 @@ public class KnxServiceImpl extends KadService implements KnxService {
             }
         }
     }
+    
+    
+    @Override
+    public void writeResponse(String gaName, String value) throws KnxServiceException {
+
+        String ga = translateNameToGa(gaName);
+        String dpt = getDPT(gaName);
+
+        try {
+            knx.write(true, ga, dpt, value);
+            fireKnxEvent(ga, gaName, dpt, value, KnxServiceDataListener.TYPE.RESPONSE);
+        } catch (KnxException ex) {
+            throw new KnxServiceException("Problem writing '" + value + "' with DPT " + dpt + " to " + ga, ex);
+        }
+    }
+    
+    @Override
+    public void writeResponse(String individualAddress, String gaName, String value) throws KnxServiceException {
+        try {
+            knx.setIndividualAddress(individualAddress);
+            writeResponse(gaName, value);
+            knx.setIndividualAddress(defaultIA);
+        } catch (KnxServiceException | KnxException ex) {
+            throw new KnxServiceException("Problem writing", ex);
+        }
+    }
 
     @Override
     public void write(String gaName, String value) throws KnxServiceException {
@@ -306,8 +336,8 @@ public class KnxServiceImpl extends KadService implements KnxService {
         String dpt = getDPT(gaName);
 
         try {
-            knx.write(ga, dpt, value);
-            fireWriteEvent(ga, gaName, dpt, value);
+            knx.write(false, ga, dpt, value);
+            fireKnxEvent(ga, gaName, dpt, value, KnxServiceDataListener.TYPE.WRITE);
         } catch (KnxException ex) {
             throw new KnxServiceException("Problem writing '" + value + "' with DPT " + dpt + " to " + ga, ex);
         }

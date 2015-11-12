@@ -25,12 +25,15 @@ package de.root1.kad.knxservice;
  */
 public interface KnxServiceDataListener {
     
+    public enum TYPE {READ, WRITE, RESPONSE, UNDEFINED};
+    
     
     /**
      * knx data received
      * @param gaName name of ga
      * @param value value as string
+     * @param type type of knx telegram
      */
-    public void onData(String gaName, String value);
+    public void onData(String gaName, String value, TYPE type);
     
 }

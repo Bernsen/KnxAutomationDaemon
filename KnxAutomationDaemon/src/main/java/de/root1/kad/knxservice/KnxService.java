@@ -59,6 +59,7 @@ public interface KnxService {
      * @throws de.root1.kad.knxservice.KnxServiceException
      */
     public void write(String gaName, String stringData) throws KnxServiceException;
+    public void writeResponse(String gaName, String stringData) throws KnxServiceException;
 
     /**
      * Same as {@link KnxService#write(java.lang.String, java.lang.String) }
@@ -70,6 +71,7 @@ public interface KnxService {
      * @throws de.root1.kad.knxservice.KnxServiceException
      */
     public void write(String individualAddress, String gaName, String stringData) throws KnxServiceException;
+    public void writeResponse(String individualAddress, String gaName, String stringData) throws KnxServiceException;
 
     /**
      * Read data from KNX implementation has to lookup the required GA + DPT for given groupaddress name.
