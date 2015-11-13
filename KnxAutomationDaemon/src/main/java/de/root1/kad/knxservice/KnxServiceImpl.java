@@ -29,6 +29,7 @@ import de.root1.slicknx.KnxFormatException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -38,6 +39,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,28 +66,28 @@ public class KnxServiceImpl extends KadService implements KnxService {
     ExecutorService pool = Executors.newCachedThreadPool(new NamedThreadFactory("KnxServiceOndataForwarding"));
 
     private GroupAddressListener gal;
-    
+
     private final KnxCache cache;
 
     public KnxServiceImpl() {
         super();
         cache = new KnxCache(configProperties);
         this.gal = new GroupAddressListener() {
-            
+
             private void processEvent(GroupAddressEvent event) {
                 KnxServiceDataListener.TYPE type = KnxServiceDataListener.TYPE.WRITE;
-                
-                String ga=null;
-                String dpt=null;
-                String gaName=null;
+
+                String ga = null;
+                String dpt = null;
+                String gaName = null;
                 try {
                     ga = event.getDestination();
-                    dpt = gaToDptProperties.getProperty(ga);
+                    dpt = gaToDpt.get(ga);
                     gaName = translateGaToName(ga);
                     String[] split = dpt.split("\\.");
                     int mainType = Integer.parseInt(split[0]);
                     String value = event.asString(mainType, dpt); // slicknx/calimero string styleq
-                    switch(event.getType()) {
+                    switch (event.getType()) {
                         case GROUP_READ:
                             type = KnxServiceDataListener.TYPE.READ;
                             value = null;
@@ -94,14 +100,14 @@ public class KnxServiceImpl extends KadService implements KnxService {
                             type = KnxServiceDataListener.TYPE.WRITE;
                             break;
                     }
-                    
+
                     fireKnxEvent(ga, gaName, dpt, value, type);
 
                 } catch (KnxFormatException ex) {
-                    log.warn("Error converting data to String with DPT"+dpt+". event="+event+" ga="+ga+" gaName='"+gaName+"'", ex);
+                    log.warn("Error converting data to String with DPT" + dpt + ". event=" + event + " ga=" + ga + " gaName='" + gaName + "'", ex);
                 } catch (KnxServiceConfigurationException ex) {
-                    log.warn("Error converting groupaddress to groupaddress-name. ga unknown?. ga="+ga, ex);
-                } 
+                    log.warn("Error converting groupaddress to groupaddress-name. ga unknown?. ga=" + ga, ex);
+                }
             }
 
             @Override
@@ -135,7 +141,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     private void fireKnxEvent(final String ga, final String finalGaName, final String dpt, String value, final KnxServiceDataListener.TYPE type) {
         final String finalValue = KnxSimplifiedTranslation.decode(dpt, value); // convert to KAD string style (no units etc...)
-        switch(type) {
+        switch (type) {
             case RESPONSE:
             case WRITE:
                 cache.update(ga, finalValue);
@@ -196,17 +202,19 @@ public class KnxServiceImpl extends KadService implements KnxService {
         }
     }
 
-    private File cachedGaPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.ga.properties");
-    private File cachedDptPropertiesFile = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "knxproject.dpt.properties");
+    private File knxprojDataCache = new File(System.getProperty("kad.basedir") + File.separator + "cache" + File.separator + "KnxProjectCache.dat");
     private File knxprojData = new File(System.getProperty("kad.basedir") + File.separator + "conf" + File.separator + "knxproject.knxproj");
+    private File knxprojDataUser = new File(System.getProperty("kad.basedir") + File.separator + "conf" + File.separator + "knxproject.knxproj.user.xml");
     /**
      * NAME -> GA
      */
-    private Properties nameToGaProperties = new Properties();
+    private Map<String, String> nameToGa = new HashMap<>();
+    private Map<String, String> gaToName = new HashMap<>();
+
     /**
      * GA -> DPT
      */
-    private Properties gaToDptProperties = new Properties();
+    private Map<String, String> gaToDpt = new HashMap<>();
 
     private void readKnxProjectData() {
 
@@ -220,18 +228,19 @@ public class KnxServiceImpl extends KadService implements KnxService {
         boolean ok = false;
 
         try {
+            Element root = null;
+            SAXBuilder builder = new SAXBuilder();
+            Document document;
 
-            if (cachedGaPropertiesFile.exists()) {
-                nameToGaProperties.load(new FileInputStream(cachedGaPropertiesFile));
-                checksumCache = nameToGaProperties.getProperty("knxproject.checksum", "");
-                checksumCacheKnxprojUserxml = nameToGaProperties.getProperty("knxproject.userxml.checksum", "");
-            }
-
-            if (cachedDptPropertiesFile.exists()) {
-                gaToDptProperties.load(new FileInputStream(cachedDptPropertiesFile));
-                if (checksumCache.equals("notyetread")) {
-                    checksumCache = nameToGaProperties.getProperty("knxproject.checksum", "");
-                }
+            if (knxprojDataCache.exists()) {
+                document = (Document) builder.build(knxprojDataCache);
+                root = document.getRootElement();
+                checksumCache = root.getChildText(ELEMENT_KNXPROJECT_CHECKSUM);
+                checksumCacheKnxprojUserxml = root.getChildText(ELEMENT_KNXPROJECT_USERXML_CHECKSUM);
+            } else {
+                document = new Document(new Element("knxprojectuserconfiguration"));
+                root = new Element("KnxProjectCache");
+                document.setRootElement(root);
             }
 
             if (knxprojData.exists()) {
@@ -241,7 +250,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 useCacheOnly = true;
             }
 
-            if (knxprojData.exists()) {
+            if (knxprojDataUser.exists()) {
                 checksumKnxprojUserxml = de.root1.kad.Utils.createSHA1(knxprojData);
             }
 
@@ -250,48 +259,69 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 log.info("No change in knxproject data detected. Continue with cached values.");
                 ok = true;
 
+                Element elGroupAddresses = root.getChild(ELEMENT_GROUPADDRESSES);
+                List<Element> elGroupAddress = elGroupAddresses.getChildren(ELEMENT_GROUPADDRESS);
+                for (Element elGa : elGroupAddress) {
+                    String name = elGa.getAttributeValue(ATTRIB_NAME);
+                    String ga = elGa.getAttributeValue(ATTRIB_GA);
+                    String dpt = elGa.getAttributeValue(ATTRIB_DPT);
+
+                    nameToGa.put(name, ga);
+                    gaToName.put(ga, name);
+                    gaToDpt.put(ga, dpt);
+                }
+                log.info("Done with reading {} groupaddresses from cache", gaToName.size());
+
             } else {
 
                 log.info("knxproject data change detected. Reading data ...");
-                cachedGaPropertiesFile.delete();
-                nameToGaProperties.clear();
-                gaToDptProperties.clear();
+                knxprojDataCache.delete();
 
-                nameToGaProperties.put("knxproject.checksum", checksumKnxproj);
-                nameToGaProperties.put("knxproject.userxml.checksum", checksumKnxprojUserxml);
+                nameToGa.clear();
+                gaToName.clear();
+                gaToDpt.clear();
+
+                Element elKnxProjChecksum = new Element(ELEMENT_KNXPROJECT_CHECKSUM);
+                Element elKnxProjuserXmlChecksum = new Element(ELEMENT_KNXPROJECT_USERXML_CHECKSUM);
+
+                elKnxProjChecksum.setText(checksumKnxproj);
+                elKnxProjuserXmlChecksum.setText(checksumKnxprojUserxml);
+
+                Element elGroupaddresses = new Element(ELEMENT_GROUPADDRESSES);
+                root.addContent(elGroupaddresses);
+
+                root.addContent(elKnxProjChecksum);
+                root.addContent(elKnxProjuserXmlChecksum);
 
                 log.info("Reading knx project data ...");
                 KnxProjReader kpr = new KnxProjReader(knxprojData);
                 List<GroupAddress> groupaddressList = kpr.getProjects().get(0).getGroupaddressList();
-                Map<String, String> gaMap = new HashMap<>();
                 for (GroupAddress ga : groupaddressList) {
-                    gaMap.put(ga.getName(), ga.getAddress());
-                    nameToGaProperties.put(ga.getName(), ga.getAddress());
-                    gaToDptProperties.put(ga.getAddress(), ga.getDataPointType());
-                }
 
+                    nameToGa.put(ga.getName(), ga.getAddress());
+                    gaToName.put(ga.getAddress(), ga.getName());
+                    gaToDpt.put(ga.getAddress(), ga.getDataPointType());
+
+                    Element groupaddress = new Element(ELEMENT_GROUPADDRESS);
+                    groupaddress.setAttribute(ATTRIB_GA, ga.getAddress());
+                    groupaddress.setAttribute(ATTRIB_DPT, ga.getDataPointType());
+                    groupaddress.setAttribute(ATTRIB_NAME, ga.getName());
+
+                    elGroupaddresses.addContent(groupaddress);
+                }
+                log.info("Done with reading knx project data.");
                 // writing to cache
                 log.info("Writing cache data ...");
 
-                try (FileOutputStream fos = new FileOutputStream(cachedGaPropertiesFile);) {
-                    log.info("Writing {} cache data to {} ...", nameToGaProperties.size(), cachedGaPropertiesFile);
-                    nameToGaProperties.store(fos, "This is GA-Name to GA cache");
-                    fos.close();
-                } catch (IOException ex) {
-                    log.warn("Cannot write ga cache to " + cachedGaPropertiesFile.getCanonicalPath(), ex);
-                }
+                // new XMLOutputter().output(doc, System.out);
+                XMLOutputter xmlOutput = new XMLOutputter();
 
-                try (FileOutputStream fos = new FileOutputStream(cachedDptPropertiesFile);) {
-                    log.info("Writing {} cache data to {} ...", gaToDptProperties.size(), cachedDptPropertiesFile);
-                    gaToDptProperties.store(fos, "This is GA-Name to GA cache");
-                    fos.close();
-                } catch (IOException ex) {
-                    log.warn("Cannot write dpt cache to " + cachedDptPropertiesFile.getCanonicalPath(), ex);
-                }
+                // display nice nice
+                xmlOutput.setFormat(Format.getPrettyFormat());
+                xmlOutput.output(document, new FileWriter(knxprojDataCache));
 
-                log.info("Writing cache data ...*done*");
+                log.info("Done with writing {} groupaddresses to cache", gaToName.size());
 
-                log.info("Reading knx project data ... *DONE*");
                 ok = true;
             }
 
@@ -300,13 +330,19 @@ public class KnxServiceImpl extends KadService implements KnxService {
         } finally {
             if (!ok) {
                 log.warn("GA and DPT cache not available");
-                nameToGaProperties.clear();
-                gaToDptProperties.clear();
+                nameToGa.clear();
+                gaToDpt.clear();
             }
         }
     }
-    
-    
+    private static final String ELEMENT_KNXPROJECT_USERXML_CHECKSUM = "knxprojectUserxmlChecksum";
+    private static final String ELEMENT_KNXPROJECT_CHECKSUM = "knxprojectChecksum";
+    private static final String ELEMENT_GROUPADDRESS = "groupaddress";
+    private static final String ELEMENT_GROUPADDRESSES = "groupaddresses";
+    private static final String ATTRIB_GA = "ga";
+    private static final String ATTRIB_NAME = "name";
+    private static final String ATTRIB_DPT = "dpt";
+
     @Override
     public void writeResponse(String gaName, String value) throws KnxServiceException {
 
@@ -320,7 +356,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
             throw new KnxServiceException("Problem writing '" + value + "' with DPT " + dpt + " to " + ga, ex);
         }
     }
-    
+
     @Override
     public void writeResponse(String individualAddress, String gaName, String value) throws KnxServiceException {
         try {
@@ -364,7 +400,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
         String dpt = getDPT(gaName);
 
         String value = cache.get(ga);
-        if (value==null) {
+        if (value == null) {
             try {
                 value = knx.read(ga, dpt);
                 log.info("Cache does not contain value for [{}@{}], reading from bus.", gaName, ga);
@@ -442,18 +478,18 @@ public class KnxServiceImpl extends KadService implements KnxService {
         if (gaName.equals("*")) {
             return "*";
         } else {
-            String name = (String) nameToGaProperties.get(gaName);
-            if (name == null) {
-                throw new KnxServiceConfigurationException("Group address name [" + gaName + "] can not be resolved to a groupaddress. Name unkown.");
+            
+            if (nameToGa.containsKey(gaName)) {
+                return nameToGa.get(gaName);
             }
-            return name;
+            throw new KnxServiceConfigurationException("Group address name [" + gaName + "] can not be resolved to a groupaddress. Name unkown.");
         }
     }
 
     @Override
     public String getDPT(String gaName) throws KnxServiceConfigurationException {
         String ga = translateNameToGa(gaName);
-        String dpt = gaToDptProperties.getProperty(ga);
+        String dpt = gaToDpt.get(ga);
         if (dpt == null) {
             throw new KnxServiceConfigurationException("Group address [" + gaName + "@" + ga + "] has no associated DPT. Please update configuration.");
         }
@@ -462,29 +498,24 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
     @Override
     public String translateGaToName(String ga) throws KnxServiceConfigurationException {
-        Enumeration<Object> keys = nameToGaProperties.keys();
-        while (keys.hasMoreElements()) {
-            String name = (String) keys.nextElement();
-            String gaValue = (String) nameToGaProperties.get(name);
-            if (gaValue.equals(ga)) {
-                return name;
-            }
+        if (gaToName.containsKey(ga)) {
+            return gaToName.get(ga);
         }
         throw new KnxServiceConfigurationException("Group address [" + ga + "] can not be resolved to a groupaddress name. GA unkown.");
     }
 
     @Override
     public String getCachedValue(String gaName) throws KnxServiceException {
-        String value=null;
+        String value = null;
         try {
             String ga = translateNameToGa(gaName);
             String dpt = getDPT(gaName);
 
             value = cache.get(ga);
         } catch (KnxServiceException ex) {
-            throw new KnxServiceException("Problem translating '"+gaName+"' to GA", ex);
+            throw new KnxServiceException("Problem translating '" + gaName + "' to GA", ex);
         }
-        return value;        
+        return value;
     }
 
 }

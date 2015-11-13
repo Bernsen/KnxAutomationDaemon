@@ -113,17 +113,17 @@ public class LogicPlugin extends KadPlugin {
                 log.error("Errir registering wildcard listener on knx service", ex);
             }
 
-            log.info("Starting Plugin {}", getClass().getCanonicalName());
+            log.info("Starting LogicPlugin");
 
             scheduler = new AnnotationScheduler();
             
             // initial read source files
             sourceContainerList.addAll(Utils.getSourceContainers(srcDir, libDir));
-            log.info("Found scripts: {}", sourceContainerList);
+            log.info("Found logicscripts: {}", sourceContainerList);
 
             for (SourceContainer sc : sourceContainerList) {
 
-                log.info("Loading script: " + sc.getCanonicalClassName());
+                log.info("Loading logicscript: " + sc.getCanonicalClassName());
 
                 try {
                     sc.setKadClassloader(getKadClassLoader());
@@ -131,17 +131,18 @@ public class LogicPlugin extends KadPlugin {
                     logic.setKnxService(knx);
                     logic.startCron(scheduler);
                     
-                    log.info("Initialize logic {} ...", logic.getClass().getCanonicalName());
+                    log.info("Initialize logic ...");
                     logic.init();
                     logicList.add(logic);
                     addToMap(logic);
+                    log.info("... done");
                 } catch (LogicException ex) {
                     log.error("Error loading script '{}': {}", sc.getPackagePath() + File.separator + sc.getJavaSourceFile(), ex.getMessage());
                 }
 
             }
 
-            log.info("Starting Plugin {} *DONE*", getClass().getCanonicalName());
+            log.info("LogicPlugin startup finished.");
         } catch (LoadSourceException ex) {
             log.error("Error loading source", ex);
         }
