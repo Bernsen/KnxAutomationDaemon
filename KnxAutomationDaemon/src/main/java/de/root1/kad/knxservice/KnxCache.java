@@ -57,7 +57,7 @@ public class KnxCache {
                     String address = iterator.next();
                     CacheEntry cacheEntry = cache.get(address);
                     if (System.currentTimeMillis() - cacheEntry.getLastUpdate() > purgetime) {
-                        log.info("Removing from cache: {}", cacheEntry);
+                        log.debug("Removing from cache: {}", cacheEntry);
                         iterator.remove();
                     }
                 }
@@ -83,7 +83,7 @@ public class KnxCache {
                         oos.writeObject(ce);
                     }
                     oos.close();
-                    log.info("Persisting cache... *done*");
+                    log.debug("Persisting cache... *done*");
                 } catch (IOException ex) {
                     log.error("Error persisting cache. Deleting cache.", ex);
                     if (cacheFile.exists()) {
@@ -140,7 +140,7 @@ public class KnxCache {
                     CacheEntry ce = (CacheEntry) ois.readObject();
                     cache.put(ce.getAddress(), ce);
                 }
-                log.info("Done filling cache");
+                log.debug("Done filling cache");
             } catch (FileNotFoundException ex) {
                 log.info("No cache file present. Skip.");
             } catch (ClassNotFoundException | IOException ex) {
@@ -160,7 +160,7 @@ public class KnxCache {
         synchronized (cache) {
             ce = cache.get(ga);
             if (ce != null && System.currentTimeMillis() - ce.getLastUpdate() < purgetime) {
-                log.info("got value from cache: {}", ce);
+                log.debug("got value from cache: {}", ce);
                 return ce.getValue();
             } else {
                 cache.remove(ga);
@@ -182,7 +182,7 @@ public class KnxCache {
                 ce = new CacheEntry(ga, value);
                 cache.put(ga, ce);
             }
-            log.info("Updating cache({}): {} -> '{}'", cache.size(), ga, value);
+            log.debug("Updating cache({}): {} -> '{}'", cache.size(), ga, value);
             ce.setValue(value);
             if (persist && interval == 0) {
                 taskCachePersist.run();

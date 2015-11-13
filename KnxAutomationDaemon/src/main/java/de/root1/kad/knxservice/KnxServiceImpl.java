@@ -77,6 +77,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
                 try {
                     ga = event.getDestination();
                     dpt = gaToDptProperties.getProperty(ga);
+                    gaName = translateGaToName(ga);
                     String[] split = dpt.split("\\.");
                     int mainType = Integer.parseInt(split[0]);
                     String value = event.asString(mainType, dpt); // slicknx/calimero string styleq
@@ -98,6 +99,8 @@ public class KnxServiceImpl extends KadService implements KnxService {
 
                 } catch (KnxFormatException ex) {
                     log.warn("Error converting data to String with DPT"+dpt+". event="+event+" ga="+ga+" gaName='"+gaName+"'", ex);
+                } catch (KnxServiceConfigurationException ex) {
+                    log.warn("Error converting groupaddress to groupaddress-name. ga unknown?. ga="+ga, ex);
                 } 
             }
 

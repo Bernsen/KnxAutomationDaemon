@@ -49,6 +49,7 @@ public class BackendServer extends NanoHttpdSSE {
     private static final String REQUEST_WRITE = "w";
     private static final String REQUEST_FILTER = "f";
     private static final String REQUEST_RRDFETCH = "rrdfetch";
+    private static final String REQUEST_HOOK = "hook";
 
     private final Map<String, UserSessionID> sessions = new HashMap<>();
     private Timer t = new Timer("SessionID Remover");
@@ -126,6 +127,8 @@ public class BackendServer extends NanoHttpdSSE {
                 return handleWrite(session);
             case REQUEST_RRDFETCH:
                 return handleRrdfetch(session);
+            case REQUEST_HOOK:
+                return handleHook(session);
             default:
                 Response response = new Response("<html><body>resource '" + resource + "' not handled by this server</body></html>");
                 response.setStatus(Status.BAD_REQUEST);
@@ -399,6 +402,36 @@ public class BackendServer extends NanoHttpdSSE {
             + "[1446104753000,[\"2.0160000000E01\"]],"
             + "[1446109980000,[\"2.0280000000E01\"]]"
             + "]");
+    }
+
+    private IResponse handleHook(IHTTPSession session) {
+        
+        Map<String, List<String>> params = getParams(session);
+        log.debug("hook params: {}", params);
+        String ga=null;
+        String value=null;
+        List<String> gaParam = params.get("ga");
+        if (gaParam!=null) {
+            ga = gaParam.get(0);
+        }
+        
+        List<String> valueParam = params.get("value");
+        if (valueParam!=null) {
+            value = valueParam.get(0);
+        }
+        
+        if (ga!=null && value!=null) {
+            try {
+                knx.write(ga, value);
+                log.info("Sent hook: ga=[{}] value=[{}]", ga, value);
+            } catch (KnxServiceException ex) {
+                log.error("Problem sending hook data ga=["+ga+"] value=["+value+"]", ex);
+            }
+        } else {
+            log.warn("hook data invalid: {}", params);
+        }
+        
+        return new Response("OK");
     }
 
 }

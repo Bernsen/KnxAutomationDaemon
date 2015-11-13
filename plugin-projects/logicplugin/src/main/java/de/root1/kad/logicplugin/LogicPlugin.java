@@ -83,7 +83,7 @@ public class LogicPlugin extends KadPlugin {
                         return;
                 }
                 for (Logic logic : list) {
-                    log.info("Forwarding value '{}' from [{}@{}] with DPT '{}' to {}", new Object[]{value, gaName, knx.translateNameToGa(gaName), knx.getDPT(gaName), logic.toString()});
+                    log.debug("Forwarding value '{}' from [{}@{}] with DPT '{}' to {}", new Object[]{value, gaName, knx.translateNameToGa(gaName), knx.getDPT(gaName), logic.toString()});
                     try {
                         if (logicType==Logic.TYPE.WRITE) {
                             logic.onDataWrite(gaName, value);
