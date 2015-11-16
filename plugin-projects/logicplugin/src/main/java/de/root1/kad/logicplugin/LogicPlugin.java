@@ -128,6 +128,7 @@ public class LogicPlugin extends KadPlugin {
                 try {
                     sc.setKadClassloader(getKadClassLoader());
                     Logic logic = sc.loadLogic();
+                    logic.loadConfig();
                     logic.setKnxService(knx);
                     logic.startCron(scheduler);
                     
