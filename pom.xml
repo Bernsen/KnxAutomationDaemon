@@ -37,12 +37,12 @@
         <repository>
             <id>root1-releases</id>
             <name>internal releases</name>
-            <url>http://nexus.root1.de/content/repositories/releases/</url>
+            <url>ftp://maven.root1.de/releases/</url>
         </repository>
         <snapshotRepository>
             <id>root1-snapshots</id>
             <name>internal snapshots</name>
-            <url>http://nexus.root1.de/content/repositories/snapshots/</url>
+            <url>ftp://maven.root1.de/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
     
@@ -51,7 +51,7 @@
             <id>root1-releases</id>
             <name>root1.de Releases Repository</name>
             <layout>default</layout>
-            <url>http://nexus.root1.de/content/repositories/releases/</url>
+            <url>ftp://maven.root1.de/releases/</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -60,7 +60,7 @@
             <id>root1-snapshots</id>
             <name>root1.de Snapshots Repository</name>
             <layout>default</layout>
-            <url>http://nexus.root1.de/content/repositories/snapshots/</url>
+            <url>ftp://maven.root1.de/snapshots/</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
