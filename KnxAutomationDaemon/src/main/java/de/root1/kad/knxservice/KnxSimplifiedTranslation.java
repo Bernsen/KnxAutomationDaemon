@@ -18,6 +18,7 @@
  */
 package de.root1.kad.knxservice;
 
+import java.util.StringTokenizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,14 +35,25 @@ public class KnxSimplifiedTranslation {
         int mainDpt = Integer.parseInt(dptSplit[0]);
         String subDpt = dptSplit[1];
 
+        switch (mainDpt) {
+//            case 18:
+//                byte data = Byte.parseByte(value);
+//                final boolean c = (data & 0x80) == 128;
+//                final int scene = data & 0x3F;
+//                final String v = c ? "learn" : "activate";
+//                value = new StringTokenizer(v).nextToken() + " " + scene;
+//                break;
+        }
+
         return value;
     }
 
     /**
      * convert calimero/slicknx to simplified
+     *
      * @param dpt DPT like "1.001"
      * @param value string value in slicknx/calimero style (with units etc...(
-     * @return 
+     * @return
      */
     public static String decode(String dpt, String value) {
 
@@ -89,6 +101,20 @@ public class KnxSimplifiedTranslation {
             case 7:
             case 9:
                 value = removeUnit(mainDpt, value);
+                break;
+//            case 18: // scene
+//                StringTokenizer st = new StringTokenizer(value);
+//                String c = st.nextToken();
+//                int v = Integer.parseInt(st.nextToken());
+//                int i = 0;
+//                if ("learn".equalsIgnoreCase(c)) {
+//                    i = 128;
+//                } else if ("active".equalsIgnoreCase(c)) {
+//                    i = 0;
+//                }
+//                i += v;
+//                value = Integer.toString(i);
+//                break;
         }
         log.debug("After post-translation: '{}' dpt: '{}'", value, dpt);
 
@@ -113,7 +139,7 @@ public class KnxSimplifiedTranslation {
 //                        case "m/s":
 //                        case "°C":
 //                        case "lx":
-                            returnValue = split[0];
+                    returnValue = split[0];
 //                    }
                 }
                 break;

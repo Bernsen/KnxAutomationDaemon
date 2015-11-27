@@ -187,6 +187,8 @@ public class BackendServer extends NanoHttpdSSE {
         JSONObject c = new JSONObject();
         c.put("name", "KnxAutomationDaemon");
         c.put("transport", "sse");
+        c.put("baseURL", "/kad/");
+//        c.put("baseURL", "http://192.168.200.69:8080/kad/");
 
         JSONObject r = new JSONObject();
         r.put("read", "r");
@@ -197,8 +199,11 @@ public class BackendServer extends NanoHttpdSSE {
 
         obj.put("c", c);
         log.info("response: {}", obj.toJSONString());
+        
+        Response response = new Response(obj.toJSONString());
+        response.addHeader("Access-Control-Allow-Origin", "*");
 
-        return new Response(obj.toJSONString());
+        return response;
     }
 
     private Response handleWrite(IHTTPSession session) {
@@ -224,14 +229,17 @@ public class BackendServer extends NanoHttpdSSE {
             }
         }
         log.info("done with write for {}: {}ms", params, System.currentTimeMillis() - start);
-        return new Response(Status.OK, MIME_PLAINTEXT, "");
+        
+        Response response = new Response(Status.OK, MIME_PLAINTEXT, "");
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        return response;
 
     }
 
     private IResponse handleRead(final IHTTPSession session) {
-        // a=3/1/10, s=223f7232-ee73-41c1-8ea7-f7ef1d2adea7, t=0
+        
         Map<String, List<String>> params = getParams(session);
-        log.info("read params: {}", params);
+        log.trace("read params: {}", params);
 
         UserSessionID userSessionID = null;
         userSessionID = validateUserSessionInRequest(session);
@@ -250,8 +258,10 @@ public class BackendServer extends NanoHttpdSSE {
         JSONObject jsonData = new JSONObject();
 
         final SseResponse sse = new SseResponse(session);
+        sse.addHeader("Access-Control-Allow-Origin", "*");
+        sse.addHeader("Access-Control-Expose-Headers", "*");
 
-        log.info("Reading addresses: {}", addresses);
+        log.debug("Reading addresses: {}", addresses);
 
         List<String> asyncQuery = new ArrayList<>();
 
@@ -277,7 +287,7 @@ public class BackendServer extends NanoHttpdSSE {
         jsonResponse.put("d", jsonData);
         jsonResponse.put("i", "1");
 
-        log.info("response: {}", jsonResponse.toJSONString());
+        log.debug("response: {}", jsonResponse.toJSONString());
         sse.sendMessage(null, null, jsonResponse.toJSONString());
 
         for (String async : asyncQuery) {
@@ -294,7 +304,7 @@ public class BackendServer extends NanoHttpdSSE {
                     jsonData.put(ga, value);
                     jsonResponse.put("d", jsonData);
                     jsonResponse.put("i", "1");
-                    log.info("response: {}", jsonResponse.toJSONString());
+                    log.debug("response: {}", jsonResponse.toJSONString());
                     boolean trouble = sse.sendMessage(null, null, jsonResponse.toJSONString());
                     if (!trouble) {
                         finalUserSessionId.renew();
@@ -361,7 +371,7 @@ public class BackendServer extends NanoHttpdSSE {
         String end = session.getParms().get("end");
         String res = session.getParms().get("res");
 
-        return new Response("["
+        Response response = new Response("["
             + "[1445869830000,[\"2.0700000000E01\"]],"
             + "[1445873874000,[\"2.0600000000E01\"]],"
             + "[1445881643000,[\"2.0480000000E01\"]],"
@@ -402,6 +412,9 @@ public class BackendServer extends NanoHttpdSSE {
             + "[1446104753000,[\"2.0160000000E01\"]],"
             + "[1446109980000,[\"2.0280000000E01\"]]"
             + "]");
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        
+        return response;
     }
 
     private IResponse handleHook(IHTTPSession session) {
@@ -431,7 +444,9 @@ public class BackendServer extends NanoHttpdSSE {
             log.warn("hook data invalid: {}", params);
         }
         
-        return new Response("OK");
+        Response response = new Response("OK");
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        return response;
     }
 
 }
