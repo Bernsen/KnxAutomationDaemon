@@ -46,10 +46,14 @@ public class KadMain {
         JulFormatter.set();
         log = LoggerFactory.getLogger(KadMain.class);
         try {
-            String basedir = System.getProperty("kad.basedir", ".");
+            String basedir = System.getProperty("kad.basedir");
             
             String devPluginsDir = System.getProperty("kad.developmentPluginsDir");
             String pluginsDir = System.getProperty("kad.pluginsDir");
+            
+            if (basedir == null) {
+                System.setProperty("kad.basedir",".");
+            }
             
             if (devPluginsDir == null) {
                 System.setProperty("kad.developmentPluginsDir", basedir + File.separator + ".." + File.separator + "plugin-projects");
@@ -58,6 +62,8 @@ public class KadMain {
             if (pluginsDir == null) {
                 System.setProperty("kad.pluginsDir", basedir + File.separator + "plugins");
             }
+            
+            System.setProperty("kad.basedir", Utils.shortenFile(new File(basedir)).getAbsolutePath());
             
             log.info("basedir:      {}", Utils.shortenFile(new File(basedir)));
             log.info("Mode:         {}", System.getProperty("kad.mode", "deployment"));
