@@ -47,7 +47,10 @@
             <directory>logic</directory>
             <outputDirectory>logic</outputDirectory>
         </fileSet>
-
+        <fileSet>
+            <directory>cache</directory>
+            <outputDirectory>cache</outputDirectory>
+        </fileSet>
     </fileSets>
 
 </assembly>
