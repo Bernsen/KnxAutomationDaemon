@@ -246,7 +246,7 @@ public class KnxServiceImpl extends KadService implements KnxService {
             if (knxprojData.exists()) {
                 checksumKnxproj = de.root1.kad.Utils.createSHA1(knxprojData);
             } else {
-                log.warn("No knxproject data available. Using cached value only!");
+                log.warn("No knxproject data available: ["+knxprojData.getAbsolutePath()+"]. Using cached value only!");
                 useCacheOnly = true;
             }
 

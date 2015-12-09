@@ -110,7 +110,7 @@ public class LogicPlugin extends KadPlugin {
             try {
                 knx.registerListener("*", listener);
             } catch (KnxServiceConfigurationException ex) {
-                log.error("Errir registering wildcard listener on knx service", ex);
+                log.error("Error registering wildcard listener on knx service", ex);
             }
 
             log.info("Starting LogicPlugin");
