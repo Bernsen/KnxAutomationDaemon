@@ -53,6 +53,7 @@ public class KadMain {
             
             if (basedir == null) {
                 System.setProperty("kad.basedir",".");
+                basedir = ".";
             }
             
             if (devPluginsDir == null) {
