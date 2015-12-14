@@ -9,7 +9,7 @@ import de.root1.kad.logicplugin.Logic;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.KnxException;
 
-public class AutoLightOff extends Logic {
+public class LogicAutoLightOff extends Logic {
 
     String presenceBathroom = getGA("Presence detector bath room");
     String lightBathroom = getGA("Light bath room");
@@ -37,4 +37,10 @@ public class AutoLightOff extends Logic {
 If you use "package" for your script class, you need to put the script into a 
 corresponding package folder. For this example, create a folder named 
 "samplescripts" in scripts-folder and copy&paste the above script into a file called 
-AutoLightOff.java
+LogicAutoLightOff.java
+
+You can distribute your code over more than one class and thus share code alonglogic scripts.
+But all files must remain in one package. 
+
+To enable KAD to detect your logic, each logic script must be prefixed with "Logic", 
+f.i. "LogicAutoLightOff.java"

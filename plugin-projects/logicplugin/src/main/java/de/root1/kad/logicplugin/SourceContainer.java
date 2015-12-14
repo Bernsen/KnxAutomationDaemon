@@ -152,7 +152,7 @@ public class SourceContainer {
             jrc.addClassPath(srcDir);
             jrc.addClassPath(libDir);
 
-            File compiledScriptsFolder = new File(System.getProperty("kad.basedir"), "compiledScripts");
+            File compiledScriptsFolder = new File(System.getProperty("kad.basedir"), "compiledLogic");
 
             CompileResult compileResult = jrc.compileToFile(getCanonicalClassName(), getFile(), compiledScriptsFolder.getCanonicalFile());
 
