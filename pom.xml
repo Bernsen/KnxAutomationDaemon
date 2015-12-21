@@ -51,7 +51,7 @@
             <id>root1-releases</id>
             <name>root1.de Releases Repository</name>
             <layout>default</layout>
-            <url>ftp://maven.root1.de/releases/</url>
+            <url>http://maven.root1.de/releases/</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -60,7 +60,7 @@
             <id>root1-snapshots</id>
             <name>root1.de Snapshots Repository</name>
             <layout>default</layout>
-            <url>ftp://maven.root1.de/snapshots/</url>
+            <url>http://maven.root1.de/snapshots/</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
